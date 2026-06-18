@@ -1,0 +1,67 @@
+/* Reset minimo — niente stili di Vite, solo le basi per MioVeterinario */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Fase C: Mobile ──────────────────────────────────────
+   Queste regole migliorano l'esperienza su telefoni. */
+
+/* Impedisce a iOS di zoomare quando tocchi un input.
+   iOS zooma automaticamente se il font è < 16px.
+   Soluzione: forziamo 16px su tutti i campi form. */
+@media screen and (max-width: 480px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Scroll fluido su tutto il sito + snap per le date picker */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Nascondi la barra di scorrimento orizzontale sui selettori giorni,
+   ma permetti comunque lo scroll con il dito */
+.date-scroll::-webkit-scrollbar {
+  display: none;
+}
+.date-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Spinner per i bottoni ───────────────────────────────
+   Usato da Btn quando loading={true} */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Hover effects ──────────────────────────────────────
+   Feedback visivo su bottoni e card cliccabili */
+.btn-hover {
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.btn-hover:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.btn-hover:active:not(:disabled) {
+  transform: translateY(0);
+}
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12) !important;
+  transform: translateY(-2px);
+}
