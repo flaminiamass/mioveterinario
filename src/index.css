@@ -38,19 +38,22 @@ html {
 .date-scroll,
 .chip-scroll {
   -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 /* ── Spinner per i bottoni ───────────────────────────────
    Usato da Btn quando loading={true} */
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Hover effects ──────────────────────────────────────
    Feedback visivo su bottoni e card cliccabili */
 .btn-hover {
-  transition: filter 0.15s ease, transform 0.15s ease;
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease;
 }
 .btn-hover:hover:not(:disabled) {
   filter: brightness(1.08);
@@ -60,9 +63,11 @@ html {
   transform: translateY(0);
 }
 .card-hover {
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 .card-hover:hover {
-  box-shadow: 0 6px 16px rgba(0,0,0,0.12) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12) !important;
   transform: translateY(-2px);
 }

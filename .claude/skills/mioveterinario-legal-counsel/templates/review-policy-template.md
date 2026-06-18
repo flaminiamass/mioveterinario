@@ -36,4 +36,3 @@ Users and vets can report a review at [link/email]. We will review the report an
 ## 7. Ranking and display
 
 Reviews may influence profile visibility and search ranking. Main factors: [rating average, number of reviews, recency, reliability, relevance]. Sponsored placement, if any, will be labelled.
-

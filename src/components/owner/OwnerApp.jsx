@@ -18,8 +18,8 @@ import NotificationPanel from "../layout/NotificationPanel.jsx";
 import LegalFooter from "../legal/LegalFooter.jsx";
 
 export default function OwnerApp({ onLogout, onNav }) {
-  const { ownerProfile, appts, notifications, unreadCount, markRead, markAllRead } = useApp();
-  const proposalCount = appts.filter(a => a.proposal && a.proposal.from === "vet").length;
+  const { ownerProfile, appts, vets, notifications, unreadCount, markRead, markAllRead } = useApp();
+  const proposalCount = appts.filter((a) => a.proposal && a.proposal.from === "vet").length;
 
   // Tab principali: Home · Prenota · Veterinari · Visite · Animali
   const [tab, setTab] = useState("home");
@@ -38,11 +38,11 @@ export default function OwnerApp({ onLogout, onNav }) {
   const [bookingFilters, setBookingFilters] = useState(null);
 
   const tabs = [
-    ["home",    "🏠", "Home"],
+    ["home", "🏠", "Home"],
     ["booking", "🗓️", "Prenota"],
-    ["vets",    "👩‍⚕️", "Veterinari"],
-    ["appts",   "📅", "Visite"],
-    ["pets",    "🐾", "Animali"],
+    ["vets", "👩‍⚕️", "Veterinari"],
+    ["appts", "📅", "Visite"],
+    ["pets", "🐾", "Animali"],
   ];
 
   const resetOverlays = () => {
@@ -84,27 +84,52 @@ export default function OwnerApp({ onLogout, onNav }) {
     setViewVet(null);
   };
 
+  const handleRebook = (appt) => {
+    const vet = appts && vets.find((v) => v.id === appt.vetId);
+    if (!vet) return;
+    resetOverlays();
+    setBookingVet(vet);
+    setPreSelectedServiceId(appt.serviceId || null);
+    setPreSelectedSlot(null);
+  };
+
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 86 }}>
       <Header
         title="MioVeterinario"
         subtitle={`Area Proprietario · ${ownerProfile.name}`}
         onLogout={onLogout}
-        onProfile={() => { resetOverlays(); setShowProfile(true); }}
+        onProfile={() => {
+          resetOverlays();
+          setShowProfile(true);
+        }}
         unreadCount={unreadCount}
-        onNotifications={() => { resetOverlays(); setShowNotifications(true); }}
+        onNotifications={() => {
+          resetOverlays();
+          setShowNotifications(true);
+        }}
       />
       <div style={{ padding: space["3xl"] }}>
         {showNotifications ? (
-          <NotificationPanel notifications={notifications} onMarkRead={markRead} onMarkAllRead={markAllRead} onClose={() => setShowNotifications(false)} />
+          <NotificationPanel
+            notifications={notifications}
+            onMarkRead={markRead}
+            onMarkAllRead={markAllRead}
+            onClose={() => setShowNotifications(false)}
+          />
         ) : showProfile ? (
           <OwnerProfile onBack={() => setShowProfile(false)} />
         ) : viewVet ? (
           <VetPublicProfile
             vet={viewVet}
             onBack={() => setViewVet(null)}
-            onBook={() => { handleBookVet(viewVet); setViewVet(null); }}
-            onBookSlot={(slot) => { handleBookVetSlot(slot); }}
+            onBook={() => {
+              handleBookVet(viewVet);
+              setViewVet(null);
+            }}
+            onBookSlot={(slot) => {
+              handleBookVetSlot(slot);
+            }}
           />
         ) : bookingVet ? (
           <BookingFlow
@@ -115,8 +140,17 @@ export default function OwnerApp({ onLogout, onNav }) {
             initialDate={preSelectedSlot?.date}
             initialTime={preSelectedSlot?.time}
             initialType={preSelectedSlot?.type}
-            onDone={() => { setBookingVet(null); setPreSelectedServiceId(null); setPreSelectedSlot(null); setTab("appts"); }}
-            onCancel={() => { setBookingVet(null); setPreSelectedServiceId(null); setPreSelectedSlot(null); }}
+            onDone={() => {
+              setBookingVet(null);
+              setPreSelectedServiceId(null);
+              setPreSelectedSlot(null);
+              setTab("appts");
+            }}
+            onCancel={() => {
+              setBookingVet(null);
+              setPreSelectedServiceId(null);
+              setPreSelectedSlot(null);
+            }}
           />
         ) : viewPet ? (
           <PetDetail pet={viewPet} onBack={() => setViewPet(null)} />
@@ -126,29 +160,42 @@ export default function OwnerApp({ onLogout, onNav }) {
           <>
             {tab === "home" && (
               <OwnerHome
-                goSearch={() => { resetOverlays(); setTab("vets"); }}
-                goPets={() => { resetOverlays(); setTab("pets"); }}
-                goServiceSearch={() => { resetOverlays(); setTab("booking"); }}
+                goSearch={() => {
+                  resetOverlays();
+                  setTab("vets");
+                }}
+                goPets={() => {
+                  resetOverlays();
+                  setTab("pets");
+                }}
+                goServiceSearch={() => {
+                  resetOverlays();
+                  setTab("booking");
+                }}
                 onBookingSearch={handleBookingSearch}
               />
             )}
             {tab === "booking" && (
               <BookingSearch
+                key={JSON.stringify(bookingFilters || {})}
                 initialFilters={bookingFilters}
                 onBook={handleBookSlot}
                 onViewVet={(vet) => setViewVet(vet)}
+                onViewAllVets={() => {
+                  resetOverlays();
+                  setTab("vets");
+                }}
               />
             )}
-            {tab === "vets" && (
-              <VetsDirectory
-                onView={(vet) => setViewVet(vet)}
-                onBookSlot={handleBookSlot}
-              />
-            )}
+            {tab === "vets" && <VetsDirectory onView={(vet) => setViewVet(vet)} onBookSlot={handleBookSlot} />}
             {tab === "appts" && (
               <OwnerAppts
                 onReview={setReviewFor}
-                onGoSearch={() => { resetOverlays(); setTab("booking"); }}
+                onRebook={handleRebook}
+                onGoSearch={() => {
+                  resetOverlays();
+                  setTab("booking");
+                }}
               />
             )}
             {tab === "pets" && <MyPets onView={setViewPet} />}
@@ -159,7 +206,11 @@ export default function OwnerApp({ onLogout, onNav }) {
       <BottomNav
         tabs={tabs}
         active={tab}
-        onChange={(t) => { setTab(t); resetOverlays(); if (t !== "booking") setBookingFilters(null); }}
+        onChange={(t) => {
+          setTab(t);
+          resetOverlays();
+          if (t !== "booking") setBookingFilters(null);
+        }}
         badges={proposalCount > 0 ? { appts: proposalCount } : {}}
       />
     </div>

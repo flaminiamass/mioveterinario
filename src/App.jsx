@@ -29,16 +29,34 @@ export default function App() {
   const renderContent = () => {
     /* Pagine legali — accessibili da qualsiasi stato */
     if (legalPage === "privacy") return <PrivacyPolicy onBack={hideLegal} />;
-    if (legalPage === "terms")   return <TermsOfService onBack={hideLegal} />;
-    if (legalPage === "cookie")  return <CookiePolicy onBack={hideLegal} />;
+    if (legalPage === "terms") return <TermsOfService onBack={hideLegal} />;
+    if (legalPage === "cookie") return <CookiePolicy onBack={hideLegal} />;
 
     /* ─── Modalità Supabase (auth reale) ─── */
     if (supabaseActive) {
       /* Spinner di caricamento mentre verifica la sessione */
       if (authLoading) {
         return (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "80vh", gap: 16 }}>
-            <div style={{ width: 48, height: 48, border: `4px solid ${colors.bgBtn}`, borderTop: `4px solid ${TEAL}`, borderRadius: radius.circle, animation: "spin 0.8s linear infinite" }} />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "80vh",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                border: `4px solid ${colors.bgBtn}`,
+                borderTop: `4px solid ${TEAL}`,
+                borderRadius: radius.circle,
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
             <p style={{ color: colors.textMuted, fontSize: fontSize.base }}>Caricamento...</p>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
@@ -53,8 +71,26 @@ export default function App() {
       /* Caricamento dati dal database */
       if (dataLoading) {
         return (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "80vh", gap: 16 }}>
-            <div style={{ width: 48, height: 48, border: `4px solid ${colors.bgBtn}`, borderTop: `4px solid ${TEAL}`, borderRadius: radius.circle, animation: "spin 0.8s linear infinite" }} />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "80vh",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                border: `4px solid ${colors.bgBtn}`,
+                borderTop: `4px solid ${TEAL}`,
+                borderRadius: radius.circle,
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
             <p style={{ color: colors.textMuted, fontSize: fontSize.base }}>Caricamento dati...</p>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
@@ -79,7 +115,21 @@ export default function App() {
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: colors.bgApp, minHeight: "100vh" }}>
       {toast && (
-        <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", background: colors.textDark, color: colors.white, padding: "10px 22px", borderRadius: radius.lg, zIndex: 999, fontSize: fontSize.base, boxShadow: shadow.toast }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: colors.textDark,
+            color: colors.white,
+            padding: "10px 22px",
+            borderRadius: radius.lg,
+            zIndex: 999,
+            fontSize: fontSize.base,
+            boxShadow: shadow.toast,
+          }}
+        >
           {toast}
         </div>
       )}

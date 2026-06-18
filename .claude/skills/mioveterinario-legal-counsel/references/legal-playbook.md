@@ -69,40 +69,40 @@ Product rule: classify animal clinical records as `confidential veterinary data`
 
 ### 3.2 Data categories in MioVeterinario
 
-| Category | Examples | Typical risk | Notes |
-|---|---|---:|---|
-| Account identity | name, email, phone, password hash, role | Medium | Basic personal data. |
-| Location/contact | city, address, home visit address, IP, geolocation | High | Home visit data can reveal home and routine. |
-| Pet identity | name, species, breed, date of birth, sex, weight, microchip | Medium/High | Linked to owner; microchip can identify owner through registries. |
-| Veterinary clinical | appointment notes, diagnosis, treatments, drugs, advice, referti, vaccines | High | Confidential; may be professional record and personal data. |
-| Professional vet data | name, clinic, address, albo, titles, specialization, fees, reviews | Medium/High | Professional and reputation data. |
-| Booking/agenda | date/time/status, cancellation, no-show, reminders | Medium | Contractual and operational. |
-| Fiscal | invoices, amounts, tax details, payment status, CF/P.IVA if collected | High | Legal retention and confidentiality. |
-| Payments | PSP customer id, token, last4, transaction id | High | Never store PAN/CVV. |
-| Reviews/content | ratings, comments, replies, moderation logs | High | Defamation, confidentiality, DSA, consumer transparency. |
-| Marketing/tracking | newsletter consent, campaign source, cookies, analytics id | Medium/High | Consent/cookie/ePrivacy rules. |
-| Support/security | tickets, logs, admin actions, IP, device data | Medium/High | Data minimization and retention needed. |
-| AI inputs/outputs | summaries, triage text, support bot logs | High | Risk of sending confidential records to AI vendors. |
+| Category              | Examples                                                                   | Typical risk | Notes                                                             |
+| --------------------- | -------------------------------------------------------------------------- | -----------: | ----------------------------------------------------------------- |
+| Account identity      | name, email, phone, password hash, role                                    |       Medium | Basic personal data.                                              |
+| Location/contact      | city, address, home visit address, IP, geolocation                         |         High | Home visit data can reveal home and routine.                      |
+| Pet identity          | name, species, breed, date of birth, sex, weight, microchip                |  Medium/High | Linked to owner; microchip can identify owner through registries. |
+| Veterinary clinical   | appointment notes, diagnosis, treatments, drugs, advice, referti, vaccines |         High | Confidential; may be professional record and personal data.       |
+| Professional vet data | name, clinic, address, albo, titles, specialization, fees, reviews         |  Medium/High | Professional and reputation data.                                 |
+| Booking/agenda        | date/time/status, cancellation, no-show, reminders                         |       Medium | Contractual and operational.                                      |
+| Fiscal                | invoices, amounts, tax details, payment status, CF/P.IVA if collected      |         High | Legal retention and confidentiality.                              |
+| Payments              | PSP customer id, token, last4, transaction id                              |         High | Never store PAN/CVV.                                              |
+| Reviews/content       | ratings, comments, replies, moderation logs                                |         High | Defamation, confidentiality, DSA, consumer transparency.          |
+| Marketing/tracking    | newsletter consent, campaign source, cookies, analytics id                 |  Medium/High | Consent/cookie/ePrivacy rules.                                    |
+| Support/security      | tickets, logs, admin actions, IP, device data                              |  Medium/High | Data minimization and retention needed.                           |
+| AI inputs/outputs     | summaries, triage text, support bot logs                                   |         High | Risk of sending confidential records to AI vendors.               |
 
 ## 4. Privacy/GDPR operating rules
 
 ### 4.1 Legal basis matrix
 
-| Processing | Likely legal basis | Owner/controller note | Product requirement |
-|---|---|---|---|
-| Owner account creation | Contract or pre-contract | Platform controller | Privacy notice at signup. |
-| Vet account/KYB | Contract, legal obligation, legitimate interest | Platform controller | Verify identity/albo; keep evidence. |
-| Search and booking | Contract, legitimate interest | Platform controller; vet may be independent controller for booking received | Show service info before booking. |
-| Sharing appointment details with vet | Contract; legitimate interest; maybe legal/professional necessity | Platform + vet roles must be mapped | Limit to necessary fields. |
-| Referti hosted for vet | Often vet controller, platform processor; sometimes platform controller for account delivery | Need Art. 28 DPA if processor | RBAC, audit logs, retention by vet instruction. |
-| Owner view of referti/invoices | Contract, legal obligation where applicable | Platform/vet role split | Access only to correct owner. |
-| Vaccination reminders | Contract/service; legitimate interest if expected | Platform or vet depending source | Opt-out for non-essential reminders. |
-| Marketing/newsletter | Consent, or soft spam only in narrow cases | Platform controller | Separate checkbox; unsubscribe in every email. |
-| Non-technical cookies/profiling | Consent | Platform controller | Reject all as easy as accept all. |
-| Security logs/fraud | Legitimate interest; legal obligation | Platform controller | Retention, access restriction. |
-| Fiscal records | Legal obligation; contract | Vet and/or platform depending issuer | Accountant sign-off. |
-| Reviews publication | Contract/legitimate interest; content moderation obligations | Platform controller for review system | Disclosure, moderation, verification. |
-| AI-assisted drafting | Contract/legitimate interest only after privacy/security review | Platform/vet roles depend on use | No AI vendor without DPA/TIA; vet final approval. |
+| Processing                           | Likely legal basis                                                                           | Owner/controller note                                                       | Product requirement                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------- |
+| Owner account creation               | Contract or pre-contract                                                                     | Platform controller                                                         | Privacy notice at signup.                         |
+| Vet account/KYB                      | Contract, legal obligation, legitimate interest                                              | Platform controller                                                         | Verify identity/albo; keep evidence.              |
+| Search and booking                   | Contract, legitimate interest                                                                | Platform controller; vet may be independent controller for booking received | Show service info before booking.                 |
+| Sharing appointment details with vet | Contract; legitimate interest; maybe legal/professional necessity                            | Platform + vet roles must be mapped                                         | Limit to necessary fields.                        |
+| Referti hosted for vet               | Often vet controller, platform processor; sometimes platform controller for account delivery | Need Art. 28 DPA if processor                                               | RBAC, audit logs, retention by vet instruction.   |
+| Owner view of referti/invoices       | Contract, legal obligation where applicable                                                  | Platform/vet role split                                                     | Access only to correct owner.                     |
+| Vaccination reminders                | Contract/service; legitimate interest if expected                                            | Platform or vet depending source                                            | Opt-out for non-essential reminders.              |
+| Marketing/newsletter                 | Consent, or soft spam only in narrow cases                                                   | Platform controller                                                         | Separate checkbox; unsubscribe in every email.    |
+| Non-technical cookies/profiling      | Consent                                                                                      | Platform controller                                                         | Reject all as easy as accept all.                 |
+| Security logs/fraud                  | Legitimate interest; legal obligation                                                        | Platform controller                                                         | Retention, access restriction.                    |
+| Fiscal records                       | Legal obligation; contract                                                                   | Vet and/or platform depending issuer                                        | Accountant sign-off.                              |
+| Reviews publication                  | Contract/legitimate interest; content moderation obligations                                 | Platform controller for review system                                       | Disclosure, moderation, verification.             |
+| AI-assisted drafting                 | Contract/legitimate interest only after privacy/security review                              | Platform/vet roles depend on use                                            | No AI vendor without DPA/TIA; vet final approval. |
 
 ### 4.2 Article 9 / special categories
 
@@ -150,17 +150,17 @@ Default mapping:
 
 These are product defaults, not final legal advice:
 
-| Data | Suggested default | Sign-off |
-|---|---:|---|
-| Waitlist leads | delete or reconfirm after 12-18 months | privacy/marketing |
-| Account data | account life + limited limitation period | legal |
-| Booking records | 24 months after visit unless needed for dispute/accounting | legal |
-| Referti/clinical records | vet-defined professional retention; do not delete without vet/owner legal analysis | vet/legal |
-| Invoices/accounting | statutory fiscal retention; accountant to confirm exact term | accountant |
-| Reviews | while public profile active + moderation/dispute retention | legal |
-| Security logs | 6-12 months typical, longer for security incidents | security/legal |
-| Consent logs | as long as needed to prove consent + limitation period | privacy |
-| Deleted account backups | fixed backup rotation, e.g. 30-90 days | security/privacy |
+| Data                     |                                                                  Suggested default | Sign-off          |
+| ------------------------ | ---------------------------------------------------------------------------------: | ----------------- |
+| Waitlist leads           |                                             delete or reconfirm after 12-18 months | privacy/marketing |
+| Account data             |                                           account life + limited limitation period | legal             |
+| Booking records          |                         24 months after visit unless needed for dispute/accounting | legal             |
+| Referti/clinical records | vet-defined professional retention; do not delete without vet/owner legal analysis | vet/legal         |
+| Invoices/accounting      |                       statutory fiscal retention; accountant to confirm exact term | accountant        |
+| Reviews                  |                         while public profile active + moderation/dispute retention | legal             |
+| Security logs            |                                 6-12 months typical, longer for security incidents | security/legal    |
+| Consent logs             |                             as long as needed to prove consent + limitation period | privacy           |
+| Deleted account backups  |                                             fixed backup rotation, e.g. 30-90 days | security/privacy  |
 
 Never use indefinite retention without justification.
 
@@ -516,4 +516,3 @@ Mark as BLOCKER or HIGH when found:
 - Prescription/referto auto-generation without vet approval.
 - Fattura generated in frontend as final fiscal document without SdI/fiscal workflow.
 - Hardcoded API keys, tokens, endpoints, or credentials.
-

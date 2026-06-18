@@ -9,11 +9,7 @@ export default function ToggleChips({ options, active = [], onChange, single, st
     if (single) {
       onChange(active.includes(key) ? [] : [key]);
     } else {
-      onChange(
-        active.includes(key)
-          ? active.filter(k => k !== key)
-          : [...active, key]
-      );
+      onChange(active.includes(key) ? active.filter((k) => k !== key) : [...active, key]);
     }
   };
 

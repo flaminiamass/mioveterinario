@@ -9,9 +9,7 @@ import { today, fmtDate } from "./helpers.js";
  * Esclude appuntamenti cancellati.
  */
 const takenSlotsForDay = (vetId, appts, date) =>
-  appts
-    .filter(a => a.vetId === vetId && a.date === date && a.status !== "cancelled")
-    .map(a => a.time);
+  appts.filter((a) => a.vetId === vetId && a.date === date && a.status !== "cancelled").map((a) => a.time);
 
 /**
  * Slot liberi per un vet in una data specifica.
@@ -19,7 +17,7 @@ const takenSlotsForDay = (vetId, appts, date) =>
  */
 export function getAvailableSlotsForDay(vet, appts, date) {
   const taken = takenSlotsForDay(vet.id, appts, date);
-  return SLOT_TIMES.filter(t => !taken.includes(t));
+  return SLOT_TIMES.filter((t) => !taken.includes(t));
 }
 
 /**

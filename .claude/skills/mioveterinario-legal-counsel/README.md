@@ -59,4 +59,3 @@ python3 .claude/skills/mioveterinario-legal-counsel/scripts/legal_scan.py . --js
 ## Important limitation
 
 This skill is a structured legal-risk assistant. It does not replace advice from an Italian lawyer, DPO, accountant, or licensed veterinarian. Use it to find issues, draft requirements, and prepare sign-off packages.
-

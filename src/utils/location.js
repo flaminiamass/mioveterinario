@@ -3,19 +3,19 @@
    TODO fase 2: sostituire con geolocalizzazione reale del browser. */
 
 export const ROME_ZONES = [
-  { key: "Roma",        label: "Roma (tutta)",   lat: 41.9028, lng: 12.4964 },
-  { key: "Roma Centro", label: "Roma Centro",    lat: 41.8967, lng: 12.4822 },
-  { key: "Prati",       label: "Prati",          lat: 41.9052, lng: 12.4623 },
-  { key: "Trastevere",  label: "Trastevere",     lat: 41.8876, lng: 12.4697 },
-  { key: "Balduina",    label: "Balduina",       lat: 41.9230, lng: 12.4310 },
-  { key: "Aurelio",     label: "Aurelio",        lat: 41.8986, lng: 12.4258 },
-  { key: "Parioli",     label: "Parioli",        lat: 41.9240, lng: 12.5130 },
-  { key: "Monteverde",  label: "Monteverde",     lat: 41.8780, lng: 12.4545 },
+  { key: "Roma", label: "Roma (tutta)", lat: 41.9028, lng: 12.4964 },
+  { key: "Roma Centro", label: "Roma Centro", lat: 41.8967, lng: 12.4822 },
+  { key: "Prati", label: "Prati", lat: 41.9052, lng: 12.4623 },
+  { key: "Trastevere", label: "Trastevere", lat: 41.8876, lng: 12.4697 },
+  { key: "Balduina", label: "Balduina", lat: 41.923, lng: 12.431 },
+  { key: "Aurelio", label: "Aurelio", lat: 41.8986, lng: 12.4258 },
+  { key: "Parioli", label: "Parioli", lat: 41.924, lng: 12.513 },
+  { key: "Monteverde", label: "Monteverde", lat: 41.878, lng: 12.4545 },
 ];
 
 export const RADIUS_OPTIONS = [
-  { key: 2,  label: "2 km" },
-  { key: 5,  label: "5 km" },
+  { key: 2, label: "2 km" },
+  { key: 5, label: "5 km" },
   { key: 10, label: "10 km" },
   { key: 20, label: "20 km" },
 ];
@@ -25,7 +25,7 @@ export const DEMO_MY_LOCATION = { lat: 41.8967, lng: 12.4822, label: "Roma Centr
 
 /** Distanza approssimativa in km tra un vet e una zona. */
 export function distanceKm(vet, zoneKeyOrLabel) {
-  const zone = ROME_ZONES.find(z => z.key === zoneKeyOrLabel || z.label === zoneKeyOrLabel);
+  const zone = ROME_ZONES.find((z) => z.key === zoneKeyOrLabel || z.label === zoneKeyOrLabel);
   if (!zone) return 5; // fallback
   const vetLat = vet.lat || 41.9028;
   const vetLng = vet.lng || 12.4964;

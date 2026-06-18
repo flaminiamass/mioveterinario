@@ -11,14 +11,18 @@ export function generateInvoiceHTML(invoice, vet, client) {
   const isForfe = vet?.regime === "forfettario";
   const imponibile = invoice.items.reduce((s, i) => s + i.qty * i.price, 0);
 
-  const itemsRows = invoice.items.map(i => `
+  const itemsRows = invoice.items
+    .map(
+      (i) => `
     <tr>
       <td style="padding:8px 10px; border-bottom:1px solid #E2E8F0;">${i.desc}</td>
       <td style="padding:8px 10px; border-bottom:1px solid #E2E8F0; text-align:center;">${i.qty}</td>
       <td style="padding:8px 10px; border-bottom:1px solid #E2E8F0; text-align:right;">€${Number(i.price).toFixed(2)}</td>
       <td style="padding:8px 10px; border-bottom:1px solid #E2E8F0; text-align:right; font-weight:600;">€${(i.qty * i.price).toFixed(2)}</td>
     </tr>
-  `).join("");
+  `
+    )
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="it">
@@ -105,10 +109,14 @@ export function generateInvoiceHTML(invoice, vet, client) {
 
   <div class="totals">
     <div class="row"><span>Imponibile</span><span>€${imponibile.toFixed(2)}</span></div>
-    ${!isForfe ? `
+    ${
+      !isForfe
+        ? `
       <div class="row"><span>Rivalsa ENPAV 2%</span><span>€${(invoice.enpav || 0).toFixed(2)}</span></div>
       <div class="row"><span>IVA 22%</span><span>€${(invoice.iva || 0).toFixed(2)}</span></div>
-    ` : ""}
+    `
+        : ""
+    }
     ${(invoice.bollo || 0) > 0 ? `<div class="row"><span>Marca da bollo</span><span>€${invoice.bollo.toFixed(2)}</span></div>` : ""}
     <div class="row-total"><span>TOTALE</span><span>€${(invoice.total || imponibile).toFixed(2)}</span></div>
   </div>

@@ -125,4 +125,3 @@ For any public beta that collects email/city/animal or lets users create account
 - Retention/deletion policy for waitlist leads.
 - Security basics: HTTPS, secrets outside frontend, rate limiting, spam protection.
 - Claims limited to beta reality; avoid saying booking/reviews/referti are active if they are only previews.
-

@@ -43,9 +43,9 @@ Decision: proceed / proceed with conditions / do not proceed / consult authority
 
 ### Systems and vendors
 
-| System/vendor | Role | Data | Location | DPA | Transfer basis | Notes |
-|---|---|---|---|---|---|---|
-| [vendor] | controller/processor | [data] | [country] | yes/no | [basis] | [notes] |
+| System/vendor | Role                 | Data   | Location  | DPA    | Transfer basis | Notes   |
+| ------------- | -------------------- | ------ | --------- | ------ | -------------- | ------- |
+| [vendor]      | controller/processor | [data] | [country] | yes/no | [basis]        | [notes] |
 
 ### Data flows
 
@@ -59,9 +59,9 @@ Attach diagram if available.
 
 ## 3. Roles and legal bases
 
-| Processing activity | Controller/processor | Legal basis Art. 6 | Art. 9? | Notice location | Retention |
-|---|---|---|---|---|---|
-| [activity] | [role] | [basis] | no/yes + exception | [link] | [period] |
+| Processing activity | Controller/processor | Legal basis Art. 6 | Art. 9?            | Notice location | Retention |
+| ------------------- | -------------------- | ------------------ | ------------------ | --------------- | --------- |
+| [activity]          | [role]               | [basis]            | no/yes + exception | [link]          | [period]  |
 
 Notes:
 
@@ -72,9 +72,9 @@ Notes:
 
 For each data field explain why it is necessary.
 
-| Field | Purpose | Is it required? | Less intrusive alternative | Decision |
-|---|---|---:|---|---|
-| [field] | [purpose] | yes/no | [alternative] | keep/remove/optional |
+| Field   | Purpose   | Is it required? | Less intrusive alternative | Decision             |
+| ------- | --------- | --------------: | -------------------------- | -------------------- |
+| [field] | [purpose] |          yes/no | [alternative]              | keep/remove/optional |
 
 Questions:
 
@@ -86,14 +86,14 @@ Questions:
 
 ## 5. Risks to people and professionals
 
-| Risk | Impact | Likelihood | Initial rating | Controls | Residual rating |
-|---|---:|---:|---:|---|---:|
-| Unauthorized access to referti | high | medium | HIGH | RBAC, audit logs, encryption | MEDIUM |
-| Wrong owner sees invoice/referto | high | low | HIGH | object-level auth tests | LOW |
-| Free text reveals human health | high | medium | HIGH | warning, minimization, redaction | MEDIUM |
-| Misleading video consult | high | medium | HIGH | vet gate, emergency warning | MEDIUM |
-| Fake/defamatory review | medium | medium | MEDIUM | verified reviews, moderation | LOW |
-| Non-EEA transfer | medium | medium | MEDIUM | EEA vendor/SCC/TIA | LOW |
+| Risk                             | Impact | Likelihood | Initial rating | Controls                         | Residual rating |
+| -------------------------------- | -----: | ---------: | -------------: | -------------------------------- | --------------: |
+| Unauthorized access to referti   |   high |     medium |           HIGH | RBAC, audit logs, encryption     |          MEDIUM |
+| Wrong owner sees invoice/referto |   high |        low |           HIGH | object-level auth tests          |             LOW |
+| Free text reveals human health   |   high |     medium |           HIGH | warning, minimization, redaction |          MEDIUM |
+| Misleading video consult         |   high |     medium |           HIGH | vet gate, emergency warning      |          MEDIUM |
+| Fake/defamatory review           | medium |     medium |         MEDIUM | verified reviews, moderation     |             LOW |
+| Non-EEA transfer                 | medium |     medium |         MEDIUM | EEA vendor/SCC/TIA               |             LOW |
 
 Add all feature-specific risks.
 
@@ -155,4 +155,3 @@ Triggers for review:
 - New marketing/profiling use.
 - Scale threshold reached.
 - Data breach or serious complaint.
-

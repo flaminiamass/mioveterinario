@@ -18,8 +18,29 @@ export default function RejectDialog({ open, onReject, onCancel }) {
   if (!open) return null;
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
-      <div style={{ background: colors.white, borderRadius: radius.xl, padding: 24, maxWidth: 380, width: "100%", boxShadow: shadow.toast, textAlign: "center" }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          background: colors.white,
+          borderRadius: radius.xl,
+          padding: 24,
+          maxWidth: 380,
+          width: "100%",
+          boxShadow: shadow.toast,
+          textAlign: "center",
+        }}
+      >
         <div style={{ fontSize: 36, marginBottom: 8 }}>❌</div>
         <h3 style={{ margin: "0 0 8px", color: colors.textDark }}>Rifiuta appuntamento</h3>
         <p style={{ fontSize: fontSize.base, color: colors.textSecondary, margin: "0 0 12px", lineHeight: 1.5 }}>
@@ -28,14 +49,18 @@ export default function RejectDialog({ open, onReject, onCancel }) {
         <textarea
           id="reject-reason"
           value={reason}
-          onChange={e => setReason(e.target.value)}
+          onChange={(e) => setReason(e.target.value)}
           placeholder="Es: Non ho disponibilità in quella data…"
           rows={3}
           style={{ ...inputStyle, borderRadius: radius.lg }}
         />
         <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-          <Btn variant="light" onClick={onCancel} style={{ flex: 1 }}>Annulla</Btn>
-          <Btn variant="danger" onClick={() => onReject(reason)} style={{ flex: 1 }}>Rifiuta</Btn>
+          <Btn variant="light" onClick={onCancel} style={{ flex: 1 }}>
+            Annulla
+          </Btn>
+          <Btn variant="danger" onClick={() => onReject(reason)} style={{ flex: 1 }}>
+            Rifiuta
+          </Btn>
         </div>
       </div>
     </div>

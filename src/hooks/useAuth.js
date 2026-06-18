@@ -12,19 +12,16 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabaseClient.js";
 
 export default function useAuth() {
-  const [user, setUser] = useState(null);         // oggetto auth di Supabase
-  const [profile, setProfile] = useState(null);   // riga dalla tabella profiles
-  const [loading, setLoading] = useState(true);   // true finché non sappiamo se è loggato
+  const supabaseActive = isSupabaseConfigured();
+  const [user, setUser] = useState(null); // oggetto auth di Supabase
+  const [profile, setProfile] = useState(null); // riga dalla tabella profiles
+  const [loading, setLoading] = useState(supabaseActive); // true finché non sappiamo se è loggato
 
   /* Carica il profilo dalla tabella profiles.
      Se il profilo non esiste → l'account è incompleto/corrotto,
      forziamo il logout così l'utente torna alla schermata di login. */
   const fetchProfile = useCallback(async (userId) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
 
     if (data) return data;
 
@@ -36,10 +33,7 @@ export default function useAuth() {
 
   useEffect(() => {
     /* Se Supabase non è configurato, non c'è auth da controllare */
-    if (!isSupabaseConfigured()) {
-      setLoading(false);
-      return;
-    }
+    if (!supabaseActive) return;
 
     /* 1. Controlla se c'è già una sessione attiva */
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -53,23 +47,23 @@ export default function useAuth() {
     });
 
     /* 2. Ascolta cambiamenti di stato (login/logout) */
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN" && session?.user) {
-          setUser(session.user);
-          const p = await fetchProfile(session.user.id);
-          setProfile(p);
-          if (!p) setUser(null); // profilo mancante → resetta anche user
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          setProfile(null);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        setUser(session.user);
+        const p = await fetchProfile(session.user.id);
+        setProfile(p);
+        if (!p) setUser(null); // profilo mancante → resetta anche user
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+        setProfile(null);
       }
-    );
+    });
 
     /* Pulizia: rimuovi il listener quando il componente si smonta */
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, [fetchProfile, supabaseActive]);
 
   /* Funzione di logout */
   const signOut = useCallback(async () => {

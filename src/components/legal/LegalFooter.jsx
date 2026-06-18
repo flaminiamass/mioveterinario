@@ -6,7 +6,16 @@ export default function LegalFooter({ onNav }) {
   const link = (page, label) => (
     <button
       onClick={() => onNav(page)}
-      style={{ background: "none", border: "none", cursor: "pointer", color: colors.textMuted, fontSize: fontSize.sm, textDecoration: "underline", padding: "2px 4px", fontFamily: "inherit" }}
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        color: colors.textMuted,
+        fontSize: fontSize.sm,
+        textDecoration: "underline",
+        padding: "2px 4px",
+        fontFamily: "inherit",
+      }}
     >
       {label}
     </button>

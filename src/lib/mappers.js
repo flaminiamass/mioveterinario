@@ -12,7 +12,6 @@
  * continuano a lavorare con lo stesso formato di prima.
  */
 
-
 /**
  * Mappa un veterinario dal formato database al formato componente.
  * Combina i dati dalla tabella "vets" con i servizi da "vet_services".
@@ -20,24 +19,24 @@
 export function mapVet(row, vetServicesRows = []) {
   return {
     id: row.id,
-    userId: row.user_id,               // ID utente auth (non presente in seedData, utile per l'app)
+    userId: row.user_id, // ID utente auth (non presente in seedData, utile per l'app)
     status: row.status || "pending",
     name: row.name || "",
     clinic: row.clinic || "",
     city: row.city || "",
     address: row.address || "",
-    spec: row.spec || [],               // JSONB → array automatico
+    spec: row.spec || [], // JSONB → array automatico
     animals: row.animals || [],
     bio: row.bio || "",
     fees: {
       clinic: row.fee_clinic != null ? Number(row.fee_clinic) : null,
-      home:   row.fee_home   != null ? Number(row.fee_home)   : null,
-      video:  row.fee_video  != null ? Number(row.fee_video)  : null,
+      home: row.fee_home != null ? Number(row.fee_home) : null,
+      video: row.fee_video != null ? Number(row.fee_video) : null,
     },
     rating: Number(row.rating) || 0,
-    reviews: row.review_count || 0,     // DB: review_count → componenti: reviews (il conteggio)
+    reviews: row.review_count || 0, // DB: review_count → componenti: reviews (il conteggio)
     avatar: row.avatar || "👩‍⚕️",
-    types: (row.types && row.types.length > 0) ? row.types : ["clinic"],
+    types: row.types && row.types.length > 0 ? row.types : ["clinic"],
     workDays: row.work_days || [1, 2, 3, 4, 5],
     piva: row.piva || "",
     cf: row.cf || "",
@@ -111,7 +110,7 @@ export function mapAppointment(row) {
     ownerNotes: row.owner_notes || "",
     vetNotes: row.vet_notes || "",
     rejectReason: row.reject_reason || "",
-    proposal: row.proposal || null,      // JSONB → oggetto automatico
+    proposal: row.proposal || null, // JSONB → oggetto automatico
     ownerCancelReason: row.owner_cancel_reason || "",
   };
 }
@@ -131,7 +130,7 @@ export function mapReferto(row) {
     treatments: row.treatments || "",
     drugs: row.drugs || "",
     advice: row.advice || "",
-    next: row.next_visit || "",          // DB: next_visit → componenti: next
+    next: row.next_visit || "", // DB: next_visit → componenti: next
   };
 }
 
@@ -147,7 +146,7 @@ export function mapInvoice(row) {
     date: row.date || "",
     number: row.number || "",
     payment: row.payment || "POS",
-    items: row.items || [],              // JSONB → array automatico
+    items: row.items || [], // JSONB → array automatico
     enpav: Number(row.enpav) || 0,
     iva: Number(row.iva) || 0,
     bollo: Number(row.bollo) || 0,
@@ -174,7 +173,7 @@ export function mapReview(row) {
     comment: row.comment || "",
     reply: row.reply || null,
     date: row.date || "",
-    author: row.author_name || "",       // DB: author_name → componenti: author
+    author: row.author_name || "", // DB: author_name → componenti: author
   };
 }
 
@@ -188,7 +187,7 @@ export function mapVaccine(row) {
     name: row.name || "",
     date: row.date || "",
     due: row.due || null,
-    vet: row.vet_name || "",             // DB: vet_name → componenti: vet
+    vet: row.vet_name || "", // DB: vet_name → componenti: vet
   };
 }
 

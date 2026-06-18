@@ -85,4 +85,3 @@ Consumer complaints: [process]
 Vet marketplace complaints: [process]
 Mediation/ADR: [if applicable]
 Governing law and court: [DA VALIDARE]
-

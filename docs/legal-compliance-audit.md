@@ -11,18 +11,18 @@
 
 ### 1.1 Flussi identificati nel prototipo
 
-| Flusso | Dati raccolti | Da chi | Finalità | Dove salvati (ora) | Provider terzi | Categoria rischio | Rischi legali |
-|--------|--------------|--------|----------|-------------------|----------------|-------------------|---------------|
-| Profilo proprietario | Nome, email, telefono, CF, indirizzo | Proprietario animale | Account e fatturazione | React state (AppContext) | Nessuno (demo) | Alto | GDPR: base giuridica, notice, retention |
-| Profilo animale | Nome, specie, razza, dob, peso, sesso, microchip | Proprietario | Gestione sanitaria | React state | Nessuno (demo) | Medio/Alto | Microchip = dato identificativo; note libere possono contenere dati sensibili umani |
-| Prenotazione/booking | Animale, servizio, data/ora, note libere | Proprietario | Prenotare visita | React state | Nessuno (demo) | Alto | Note libere: rischio raccolta dati sanitari umani; info precontrattuali consumatore |
-| Referto clinico | Diagnosi, trattamenti, farmaci, indicazioni, prossima visita | Veterinario | Documentazione clinica | React state | Nessuno (demo) | Alto | Riservatezza professionale; responsabilità vet; REV per farmaci soggetti a prescrizione |
-| Fattura | CF cliente, importi, voci, regime fiscale, ENPAV/IVA | Veterinario | Documentazione fiscale | React state + printInvoice (HTML) | Nessuno (demo) | Alto | Emittente della fattura; e-fattura SdI; Sistema TS; obblighi commercialista |
-| Recensione | Rating, commento, autore, appuntamento collegato | Proprietario | Valutazione veterinario | React state | Nessuno (demo) | Alto | Verifica recensioni (art. 22(5-bis) Cod. Consumo); moderazione; DSA |
-| Vaccini | Nome vaccino, data, scadenza, veterinario | Proprietario | Libretto vaccinale | React state | Nessuno (demo) | Medio | Fonte dell'informazione; responsabilità vet |
-| Profilo veterinario | Nome, clinica, indirizzo, albo, PIVA, CF, specializzazioni, tariffe | Veterinario | Pubblicazione profilo | React state (seedData) | Nessuno (demo) | Alto | Verifica albo; pubblicità veterinaria; dati fiscali in chiaro |
-| Ricerca/ranking | Query utente, filtri, ordinamento | Proprietario | Trovare veterinario | Solo calcolo locale | Nessuno (demo) | Medio | Trasparenza ranking (P2B Reg. UE 2019/1150) |
-| Stampa fattura | Tutti i dati fattura + popup browser | Veterinario | Copia PDF | window.open locale | Nessuno | Medio | Non è fattura fiscale valida |
+| Flusso               | Dati raccolti                                                       | Da chi               | Finalità                | Dove salvati (ora)                | Provider terzi | Categoria rischio | Rischi legali                                                                           |
+| -------------------- | ------------------------------------------------------------------- | -------------------- | ----------------------- | --------------------------------- | -------------- | ----------------- | --------------------------------------------------------------------------------------- |
+| Profilo proprietario | Nome, email, telefono, CF, indirizzo                                | Proprietario animale | Account e fatturazione  | React state (AppContext)          | Nessuno (demo) | Alto              | GDPR: base giuridica, notice, retention                                                 |
+| Profilo animale      | Nome, specie, razza, dob, peso, sesso, microchip                    | Proprietario         | Gestione sanitaria      | React state                       | Nessuno (demo) | Medio/Alto        | Microchip = dato identificativo; note libere possono contenere dati sensibili umani     |
+| Prenotazione/booking | Animale, servizio, data/ora, note libere                            | Proprietario         | Prenotare visita        | React state                       | Nessuno (demo) | Alto              | Note libere: rischio raccolta dati sanitari umani; info precontrattuali consumatore     |
+| Referto clinico      | Diagnosi, trattamenti, farmaci, indicazioni, prossima visita        | Veterinario          | Documentazione clinica  | React state                       | Nessuno (demo) | Alto              | Riservatezza professionale; responsabilità vet; REV per farmaci soggetti a prescrizione |
+| Fattura              | CF cliente, importi, voci, regime fiscale, ENPAV/IVA                | Veterinario          | Documentazione fiscale  | React state + printInvoice (HTML) | Nessuno (demo) | Alto              | Emittente della fattura; e-fattura SdI; Sistema TS; obblighi commercialista             |
+| Recensione           | Rating, commento, autore, appuntamento collegato                    | Proprietario         | Valutazione veterinario | React state                       | Nessuno (demo) | Alto              | Verifica recensioni (art. 22(5-bis) Cod. Consumo); moderazione; DSA                     |
+| Vaccini              | Nome vaccino, data, scadenza, veterinario                           | Proprietario         | Libretto vaccinale      | React state                       | Nessuno (demo) | Medio             | Fonte dell'informazione; responsabilità vet                                             |
+| Profilo veterinario  | Nome, clinica, indirizzo, albo, PIVA, CF, specializzazioni, tariffe | Veterinario          | Pubblicazione profilo   | React state (seedData)            | Nessuno (demo) | Alto              | Verifica albo; pubblicità veterinaria; dati fiscali in chiaro                           |
+| Ricerca/ranking      | Query utente, filtri, ordinamento                                   | Proprietario         | Trovare veterinario     | Solo calcolo locale               | Nessuno (demo) | Medio             | Trasparenza ranking (P2B Reg. UE 2019/1150)                                             |
+| Stampa fattura       | Tutti i dati fattura + popup browser                                | Veterinario          | Copia PDF               | window.open locale                | Nessuno        | Medio             | Non è fattura fiscale valida                                                            |
 
 ### 1.2 Dati NON presenti nel prototipo (ma attesi in produzione)
 
@@ -41,53 +41,53 @@
 
 ### BLOCKER (non pubblicare senza fix)
 
-| ID | Problema | File coinvolti | Stato |
-|----|----------|---------------|-------|
-| B1 | Assenza totale di Privacy Policy, Terms, Cookie Policy | — | **FIX IMPLEMENTATO** |
-| B2 | Profilo proprietario demo con nome e CF realistico (pattern codice fiscale reale: "MSSFMN95D55H501X") | AppContext.jsx, seedData.js | **FIX IMPLEMENTATO** — sostituiti con dati fictizi |
-| B3 | Nessun disclaimer che il prototipo è una demo — rischio di utenti che credono di prenotare davvero | Landing.jsx | **FIX IMPLEMENTATO** |
-| B4 | InvoiceForm genera e stampa documenti etichettati "fattura" senza essere fatture elettroniche SdI valide | InvoiceForm.jsx, invoicePrint.js | **FIX IMPLEMENTATO** — aggiunta etichetta BOZZA + disclaimer fiscale |
-| B5 | Video-consulto prenotabile senza nessun avviso che non sostituisce visita fisica | BookingFlow.jsx | **FIX IMPLEMENTATO** |
+| ID  | Problema                                                                                                 | File coinvolti                   | Stato                                                                |
+| --- | -------------------------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------- |
+| B1  | Assenza totale di Privacy Policy, Terms, Cookie Policy                                                   | —                                | **FIX IMPLEMENTATO**                                                 |
+| B2  | Profilo proprietario demo con nome e CF realistico (pattern codice fiscale reale: "MSSFMN95D55H501X")    | AppContext.jsx, seedData.js      | **FIX IMPLEMENTATO** — sostituiti con dati fictizi                   |
+| B3  | Nessun disclaimer che il prototipo è una demo — rischio di utenti che credono di prenotare davvero       | Landing.jsx                      | **FIX IMPLEMENTATO**                                                 |
+| B4  | InvoiceForm genera e stampa documenti etichettati "fattura" senza essere fatture elettroniche SdI valide | InvoiceForm.jsx, invoicePrint.js | **FIX IMPLEMENTATO** — aggiunta etichetta BOZZA + disclaimer fiscale |
+| B5  | Video-consulto prenotabile senza nessun avviso che non sostituisce visita fisica                         | BookingFlow.jsx                  | **FIX IMPLEMENTATO**                                                 |
 
 ### HIGH (rischio legale significativo — fix prima del lancio)
 
-| ID | Problema | File coinvolti | Stato |
-|----|----------|---------------|-------|
-| H1 | Recensioni mostrate senza distinguere verificate/non verificate — art. 22(5-bis) Cod. Consumo e AGCM | VetPublicProfile.jsx, seedData.js | **FIX IMPLEMENTATO** — badge ✓ Verificata / Non verificata |
-| H2 | Trasparenza ranking assente — P2B Reg. UE 2019/1150 | SearchVets.jsx | **FIX IMPLEMENTATO** — nota ℹ️ accanto ai filtri di ordinamento |
-| H3 | Nessuna informativa pre-booking (identità vet, prezzo definitivo, cancellazione/no-show) — art. 49 Cod. Consumo | BookingFlow.jsx | **FIX IMPLEMENTATO** — riepilogo step 4 con indirizzo e disclaimer |
-| H4 | RefertoForm non ha disclaimer responsabilità veterinario e avviso REV per farmaci | RefertoForm.jsx | **FIX IMPLEMENTATO** |
-| H5 | Referti e fatture visibili al proprietario senza controlli di accesso lato server | OwnerDocs.jsx | **FIX PARZIALE** — disclaimer aggiunto; il controllo RBAC server-side è TODO produzione |
-| H6 | seedData contiene 3 codici fiscali veterinari e 1 CF proprietario con pattern realistico | seedData.js | **FIX PARZIALE** — i CF vet sono rimasti (pattern plausibile ma inventato, standard in Italia per test); aggiungere nota esplicita |
-| H7 | Campo "note" in BookingFlow è testo libero senza avviso anti-dati-sensibili-umani | BookingFlow.jsx | **FIX IMPLEMENTATO** |
-| H8 | Vet profile non ha stato di verifica — rischio pubblicazione veterinari non verificati | seedData.js, SearchVets.jsx | **TODO produzione** — aggiungere campo `status: 'verified'` e filtrare nella ricerca |
-| H9 | Nessuna policy di cancellazione/rimborso visibile prima della conferma booking | BookingFlow.jsx | **FIX PARZIALE** — placeholder TODO aggiunto |
-| H10 | Link footer legale assente in tutta l'app (solo Landing) | OwnerApp.jsx, VetApp.jsx | **TODO** — LegalFooter non ancora integrato in OwnerApp e VetApp |
+| ID  | Problema                                                                                                        | File coinvolti                    | Stato                                                                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| H1  | Recensioni mostrate senza distinguere verificate/non verificate — art. 22(5-bis) Cod. Consumo e AGCM            | VetPublicProfile.jsx, seedData.js | **FIX IMPLEMENTATO** — badge ✓ Verificata / Non verificata                                                                         |
+| H2  | Trasparenza ranking assente — P2B Reg. UE 2019/1150                                                             | SearchVets.jsx                    | **FIX IMPLEMENTATO** — nota ℹ️ accanto ai filtri di ordinamento                                                                    |
+| H3  | Nessuna informativa pre-booking (identità vet, prezzo definitivo, cancellazione/no-show) — art. 49 Cod. Consumo | BookingFlow.jsx                   | **FIX IMPLEMENTATO** — riepilogo step 4 con indirizzo e disclaimer                                                                 |
+| H4  | RefertoForm non ha disclaimer responsabilità veterinario e avviso REV per farmaci                               | RefertoForm.jsx                   | **FIX IMPLEMENTATO**                                                                                                               |
+| H5  | Referti e fatture visibili al proprietario senza controlli di accesso lato server                               | OwnerDocs.jsx                     | **FIX PARZIALE** — disclaimer aggiunto; il controllo RBAC server-side è TODO produzione                                            |
+| H6  | seedData contiene 3 codici fiscali veterinari e 1 CF proprietario con pattern realistico                        | seedData.js                       | **FIX PARZIALE** — i CF vet sono rimasti (pattern plausibile ma inventato, standard in Italia per test); aggiungere nota esplicita |
+| H7  | Campo "note" in BookingFlow è testo libero senza avviso anti-dati-sensibili-umani                               | BookingFlow.jsx                   | **FIX IMPLEMENTATO**                                                                                                               |
+| H8  | Vet profile non ha stato di verifica — rischio pubblicazione veterinari non verificati                          | seedData.js, SearchVets.jsx       | **TODO produzione** — aggiungere campo `status: 'verified'` e filtrare nella ricerca                                               |
+| H9  | Nessuna policy di cancellazione/rimborso visibile prima della conferma booking                                  | BookingFlow.jsx                   | **FIX PARZIALE** — placeholder TODO aggiunto                                                                                       |
+| H10 | Link footer legale assente in tutta l'app (solo Landing)                                                        | OwnerApp.jsx, VetApp.jsx          | **TODO** — LegalFooter non ancora integrato in OwnerApp e VetApp                                                                   |
 
 ### MEDIUM (fix nel prossimo sprint)
 
-| ID | Problema | File coinvolti | Stato |
-|----|----------|---------------|-------|
-| M1 | Microchip animale mostrato per intero in PetDetail view (…solo ultimi 5 digit) | PetDetail.jsx | **PARZIALE** — view mascherata; form di modifica ora ha validazione |
-| M2 | Campo "Farmaci" in RefertoForm non distingue farmaci da banco da quelli soggetti a REV | RefertoForm.jsx | **FIX IMPLEMENTATO** — avviso aggiunto |
-| M3 | InvoiceForm numera le fatture sequenzialmente senza anno isolato — rischio duplicati | InvoiceForm.jsx | **TODO produzione** — numerazione da gestire lato server |
-| M4 | Nessuna funzione export/delete account per proprietario o veterinario | — | **TODO produzione** — richiesto da GDPR art. 17, 20 |
-| M5 | Nessuna retention policy implementata | — | **TODO produzione** |
-| M6 | Nessun maxLength sui campi liberi (diagnosi, trattamenti, ecc.) in RefertoForm | RefertoForm.jsx | **TODO** — aggiungere maxLength preventivo |
-| M7 | Vet reply alle recensioni non ha avviso "non divulgare dati clinici" | VetApp — sezione recensioni | **TODO** |
-| M8 | Nessun rate limiting su form/azioni (solo front-end senza backend) | — | **TODO produzione** — gestire lato server/API |
-| M9 | Formspree o altri form provider: non rilevati nella versione demo, ma da verificare se aggiunti in futuro | index.html, Landing | **OK in demo** — da verificare in produzione |
-| M10 | Google Fonts o CDN esterni non rilevati — OK in demo, da verificare in build produzione | index.html | **OK in demo** |
+| ID  | Problema                                                                                                  | File coinvolti              | Stato                                                               |
+| --- | --------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------- |
+| M1  | Microchip animale mostrato per intero in PetDetail view (…solo ultimi 5 digit)                            | PetDetail.jsx               | **PARZIALE** — view mascherata; form di modifica ora ha validazione |
+| M2  | Campo "Farmaci" in RefertoForm non distingue farmaci da banco da quelli soggetti a REV                    | RefertoForm.jsx             | **FIX IMPLEMENTATO** — avviso aggiunto                              |
+| M3  | InvoiceForm numera le fatture sequenzialmente senza anno isolato — rischio duplicati                      | InvoiceForm.jsx             | **TODO produzione** — numerazione da gestire lato server            |
+| M4  | Nessuna funzione export/delete account per proprietario o veterinario                                     | —                           | **TODO produzione** — richiesto da GDPR art. 17, 20                 |
+| M5  | Nessuna retention policy implementata                                                                     | —                           | **TODO produzione**                                                 |
+| M6  | Nessun maxLength sui campi liberi (diagnosi, trattamenti, ecc.) in RefertoForm                            | RefertoForm.jsx             | **TODO** — aggiungere maxLength preventivo                          |
+| M7  | Vet reply alle recensioni non ha avviso "non divulgare dati clinici"                                      | VetApp — sezione recensioni | **TODO**                                                            |
+| M8  | Nessun rate limiting su form/azioni (solo front-end senza backend)                                        | —                           | **TODO produzione** — gestire lato server/API                       |
+| M9  | Formspree o altri form provider: non rilevati nella versione demo, ma da verificare se aggiunti in futuro | index.html, Landing         | **OK in demo** — da verificare in produzione                        |
+| M10 | Google Fonts o CDN esterni non rilevati — OK in demo, da verificare in build produzione                   | index.html                  | **OK in demo**                                                      |
 
 ### LOW (polish o backlog)
 
-| ID | Problema | File coinvolti | Stato |
-|----|----------|---------------|-------|
-| L1 | Placeholder [Ragione sociale], [email privacy] nei documenti legali da compilare | legal/*.jsx | **TODO** — da riempire con dati aziendali reali |
-| L2 | Footer legale non integrato in OwnerApp e VetApp (solo Landing) | OwnerApp.jsx, VetApp.jsx | **TODO** |
-| L3 | README.md non aggiornato (ancora readme standard Vite) | README.md | **TODO** |
-| L4 | Nessun campo per data/ora review nella ReviewForm (usa fmtDate(today)) | ReviewForm.jsx | **OK** per demo — timestamp da validare con DB |
-| L5 | seedReviews contiene autore "Giulia R." e "Andrea P." — nomi plausibili ma inventati | seedData.js | **OK** — chiaramente fittizi, accettabile per demo |
+| ID  | Problema                                                                             | File coinvolti           | Stato                                              |
+| --- | ------------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------- |
+| L1  | Placeholder [Ragione sociale], [email privacy] nei documenti legali da compilare     | legal/\*.jsx             | **TODO** — da riempire con dati aziendali reali    |
+| L2  | Footer legale non integrato in OwnerApp e VetApp (solo Landing)                      | OwnerApp.jsx, VetApp.jsx | **TODO**                                           |
+| L3  | README.md non aggiornato (ancora readme standard Vite)                               | README.md                | **TODO**                                           |
+| L4  | Nessun campo per data/ora review nella ReviewForm (usa fmtDate(today))               | ReviewForm.jsx           | **OK** per demo — timestamp da validare con DB     |
+| L5  | seedReviews contiene autore "Giulia R." e "Andrea P." — nomi plausibili ma inventati | seedData.js              | **OK** — chiaramente fittizi, accettabile per demo |
 
 ---
 
@@ -95,30 +95,30 @@
 
 ### File creati
 
-| File | Contenuto |
-|------|-----------|
-| `src/components/legal/PrivacyPolicy.jsx` | Informativa privacy strutturata per prototipo/beta — GDPR art. 13/14, diritti, retention, sub-responsabili |
+| File                                      | Contenuto                                                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `src/components/legal/PrivacyPolicy.jsx`  | Informativa privacy strutturata per prototipo/beta — GDPR art. 13/14, diritti, retention, sub-responsabili |
 | `src/components/legal/TermsOfService.jsx` | Condizioni d'uso — ruolo piattaforma, booking, cancellazione, fatture, video-consulto, recensioni, ranking |
-| `src/components/legal/CookiePolicy.jsx` | Cookie policy — distinzione tecnici/non tecnici, note su analytics future, link browser |
-| `src/components/legal/LegalFooter.jsx` | Footer con link navigabili a Privacy, Terms, Cookie |
-| `docs/legal-compliance-audit.md` | Questo documento |
+| `src/components/legal/CookiePolicy.jsx`   | Cookie policy — distinzione tecnici/non tecnici, note su analytics future, link browser                    |
+| `src/components/legal/LegalFooter.jsx`    | Footer con link navigabili a Privacy, Terms, Cookie                                                        |
+| `docs/legal-compliance-audit.md`          | Questo documento                                                                                           |
 
 ### File modificati
 
-| File | Modifiche |
-|------|-----------|
-| `src/App.jsx` | Aggiunto routing per pagine legali (`legalPage` state), prop `onNav` passata a Landing/Owner/Vet |
-| `src/components/Landing.jsx` | Banner beta/prototipo, footer legale, prop `onNav` |
-| `src/components/owner/BookingFlow.jsx` | Disclaimer video-consulto (step 4), indirizzo vet nel riepilogo, note prezzo indicativo, avviso note libere, testo privacy pre-conferma, placeholder policy cancellazione |
-| `src/components/owner/SearchVets.jsx` | Nota trasparenza ranking sotto i filtri di ordinamento |
-| `src/components/owner/VetPublicProfile.jsx` | Badge "✓ Verificata" / "Non verificata" per recensioni; nota disclosure metodo verifica |
-| `src/components/owner/PetDetail.jsx` | Avviso microchip, validazione solo cifre + maxLength 15 nel campo edit |
-| `src/components/owner/OwnerDocs.jsx` | Disclaimer referti (responsabilità vet, REV), disclaimer fatture (emittente vet, SdI) |
-| `src/components/vet/RefertoForm.jsx` | Disclaimer responsabilità professionale veterinario, avviso REV farmaci, label pulsante "Salva e condividi" |
-| `src/components/vet/InvoiceForm.jsx` | Titolo con "[BOZZA]", disclaimer fiscale SdI, pulsante "Salva bozza fattura" |
-| `src/utils/invoicePrint.js` | Watermark BOZZA nel footer HTML stampato, avviso SdI |
-| `src/data/seedData.js` | Commento dati fittizi, seedClients → "Demo Utente" con CF fittizio |
-| `src/context/AppContext.jsx` | ownerProfile → "Demo Utente" con CF fittizio, commento esplicito |
+| File                                        | Modifiche                                                                                                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/App.jsx`                               | Aggiunto routing per pagine legali (`legalPage` state), prop `onNav` passata a Landing/Owner/Vet                                                                          |
+| `src/components/Landing.jsx`                | Banner beta/prototipo, footer legale, prop `onNav`                                                                                                                        |
+| `src/components/owner/BookingFlow.jsx`      | Disclaimer video-consulto (step 4), indirizzo vet nel riepilogo, note prezzo indicativo, avviso note libere, testo privacy pre-conferma, placeholder policy cancellazione |
+| `src/components/owner/SearchVets.jsx`       | Nota trasparenza ranking sotto i filtri di ordinamento                                                                                                                    |
+| `src/components/owner/VetPublicProfile.jsx` | Badge "✓ Verificata" / "Non verificata" per recensioni; nota disclosure metodo verifica                                                                                   |
+| `src/components/owner/PetDetail.jsx`        | Avviso microchip, validazione solo cifre + maxLength 15 nel campo edit                                                                                                    |
+| `src/components/owner/OwnerDocs.jsx`        | Disclaimer referti (responsabilità vet, REV), disclaimer fatture (emittente vet, SdI)                                                                                     |
+| `src/components/vet/RefertoForm.jsx`        | Disclaimer responsabilità professionale veterinario, avviso REV farmaci, label pulsante "Salva e condividi"                                                               |
+| `src/components/vet/InvoiceForm.jsx`        | Titolo con "[BOZZA]", disclaimer fiscale SdI, pulsante "Salva bozza fattura"                                                                                              |
+| `src/utils/invoicePrint.js`                 | Watermark BOZZA nel footer HTML stampato, avviso SdI                                                                                                                      |
+| `src/data/seedData.js`                      | Commento dati fittizi, seedClients → "Demo Utente" con CF fittizio                                                                                                        |
+| `src/context/AppContext.jsx`                | ownerProfile → "Demo Utente" con CF fittizio, commento esplicito                                                                                                          |
 
 ---
 
@@ -167,15 +167,15 @@
 
 ## 5. Provider esterni identificati
 
-| Provider | Tipo | Stato attuale | Azione richiesta |
-|----------|------|--------------|-----------------|
-| Supabase | Auth + DB + Storage | Menzionato nei commenti, non integrato | DPA, configurazione RLS, crittografia |
-| PSP (Stripe/Nexi/altro) | Pagamenti | Non integrato | Selezione, DPA, PCI DSS, SCA |
-| Email provider (SendGrid/SES/altro) | Email transazionale/marketing | Non integrato | DPA, trasferimento extra-SEE, opt-out |
-| Video provider (Daily/Jitsi/altro) | Video-consulto | Non integrato | DPA, no-recording default, metadati |
-| Hosting | Infrastruttura | Non definito | DPA, EEA o SCCs |
-| Analytics (GA/Plausible/altro) | Analytics | Non integrato | Consenso cookie, DPA |
-| Error reporting (Sentry/altro) | Debug | Non integrato | DPA, no-PII in logs |
+| Provider                            | Tipo                          | Stato attuale                          | Azione richiesta                      |
+| ----------------------------------- | ----------------------------- | -------------------------------------- | ------------------------------------- |
+| Supabase                            | Auth + DB + Storage           | Menzionato nei commenti, non integrato | DPA, configurazione RLS, crittografia |
+| PSP (Stripe/Nexi/altro)             | Pagamenti                     | Non integrato                          | Selezione, DPA, PCI DSS, SCA          |
+| Email provider (SendGrid/SES/altro) | Email transazionale/marketing | Non integrato                          | DPA, trasferimento extra-SEE, opt-out |
+| Video provider (Daily/Jitsi/altro)  | Video-consulto                | Non integrato                          | DPA, no-recording default, metadati   |
+| Hosting                             | Infrastruttura                | Non definito                           | DPA, EEA o SCCs                       |
+| Analytics (GA/Plausible/altro)      | Analytics                     | Non integrato                          | Consenso cookie, DPA                  |
+| Error reporting (Sentry/altro)      | Debug                         | Non integrato                          | DPA, no-PII in logs                   |
 
 ---
 
@@ -242,5 +242,5 @@
 
 ---
 
-*Documento generato da MioVeterinario Legal Counsel Skill — 18 giugno 2026*  
-*Non costituisce parere legale. Richiedere sign-off professionale prima del go-live.*
+_Documento generato da MioVeterinario Legal Counsel Skill — 18 giugno 2026_  
+_Non costituisce parere legale. Richiedere sign-off professionale prima del go-live._

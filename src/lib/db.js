@@ -16,17 +16,21 @@ import { supabase, isSupabaseConfigured } from "./supabaseClient.js";
 
 /** Crea un nuovo appuntamento */
 export async function createAppointment({ petId, vetId, ownerId, date, time, type, serviceId, ownerNotes }) {
-  return supabase.from("appointments").insert({
-    pet_id: petId,
-    vet_id: vetId,
-    owner_id: ownerId,
-    date,
-    time,
-    type,
-    service_id: serviceId,
-    status: "pending",
-    owner_notes: ownerNotes || "",
-  }).select().single();
+  return supabase
+    .from("appointments")
+    .insert({
+      pet_id: petId,
+      vet_id: vetId,
+      owner_id: ownerId,
+      date,
+      time,
+      type,
+      service_id: serviceId,
+      status: "pending",
+      owner_notes: ownerNotes || "",
+    })
+    .select()
+    .single();
 }
 
 /** Aggiorna lo status di un appuntamento */
@@ -39,35 +43,54 @@ export async function updateAppointmentStatus(id, status, extra = {}) {
 
 /** Accetta una proposta (aggiorna data/ora e rimuove proposal) */
 export async function acceptProposal(id, newDate, newTime) {
-  return supabase.from("appointments").update({
-    date: newDate,
-    time: newTime,
-    proposal: null,
-    status: "confirmed",
-  }).eq("id", id).select().single();
+  return supabase
+    .from("appointments")
+    .update({
+      date: newDate,
+      time: newTime,
+      proposal: null,
+      status: "confirmed",
+    })
+    .eq("id", id)
+    .select()
+    .single();
 }
 
 /** Rifiuta una proposta (rimuove proposal senza cambiare status) */
 export async function rejectProposal(id) {
-  return supabase.from("appointments").update({
-    proposal: null,
-  }).eq("id", id).select().single();
+  return supabase
+    .from("appointments")
+    .update({
+      proposal: null,
+    })
+    .eq("id", id)
+    .select()
+    .single();
 }
 
 /** Invia una proposta (da owner o da vet) */
 export async function sendProposal(id, proposal) {
-  return supabase.from("appointments").update({
-    proposal,   // { from: "owner"|"vet", date, time, message }
-  }).eq("id", id).select().single();
+  return supabase
+    .from("appointments")
+    .update({
+      proposal, // { from: "owner"|"vet", date, time, message }
+    })
+    .eq("id", id)
+    .select()
+    .single();
 }
 
 /** Aggiorna le note del vet su un appuntamento */
 export async function updateVetNotes(id, vetNotes) {
-  return supabase.from("appointments").update({
-    vet_notes: vetNotes,
-  }).eq("id", id).select().single();
+  return supabase
+    .from("appointments")
+    .update({
+      vet_notes: vetNotes,
+    })
+    .eq("id", id)
+    .select()
+    .single();
 }
-
 
 /* ══════════════════════════════════════════════════════════════
    PETS
@@ -75,17 +98,21 @@ export async function updateVetNotes(id, vetNotes) {
 
 /** Crea un nuovo animale */
 export async function createPet({ ownerId, name, species, breed, dob, weight, chip, sex, photo }) {
-  return supabase.from("pets").insert({
-    owner_id: ownerId,
-    name,
-    species: species || "Cane",
-    breed: breed || "",
-    dob: dob || null,
-    weight: weight ? Number(weight) : null,
-    chip: chip || "",
-    sex: sex || "",
-    photo: photo || "",
-  }).select().single();
+  return supabase
+    .from("pets")
+    .insert({
+      owner_id: ownerId,
+      name,
+      species: species || "Cane",
+      breed: breed || "",
+      dob: dob || null,
+      weight: weight ? Number(weight) : null,
+      chip: chip || "",
+      sex: sex || "",
+      photo: photo || "",
+    })
+    .select()
+    .single();
 }
 
 /** Cancella un animale */
@@ -107,20 +134,23 @@ export async function updatePet(id, fields) {
   return supabase.from("pets").update(updates).eq("id", id).select().single();
 }
 
-
 /* ══════════════════════════════════════════════════════════════
    VACCINES
    ══════════════════════════════════════════════════════════════ */
 
 /** Aggiungi un vaccino */
 export async function createVaccine({ petId, name, date, due, vetName }) {
-  return supabase.from("vaccines").insert({
-    pet_id: petId,
-    name,
-    date,
-    due: due || null,
-    vet_name: vetName || "",
-  }).select().single();
+  return supabase
+    .from("vaccines")
+    .insert({
+      pet_id: petId,
+      name,
+      date,
+      due: due || null,
+      vet_name: vetName || "",
+    })
+    .select()
+    .single();
 }
 
 /** Aggiorna un vaccino */
@@ -138,22 +168,25 @@ export async function deleteVaccine(id) {
   return supabase.from("vaccines").delete().eq("id", id);
 }
 
-
 /* ══════════════════════════════════════════════════════════════
    REVIEWS
    ══════════════════════════════════════════════════════════════ */
 
 /** Crea una recensione */
 export async function createReview({ vetId, apptId, authorId, rating, comment, authorName }) {
-  return supabase.from("reviews").insert({
-    vet_id: vetId,
-    appt_id: apptId || null,
-    author_id: authorId,
-    rating,
-    comment,
-    author_name: authorName || "",
-    date: new Date().toISOString().slice(0, 10),
-  }).select().single();
+  return supabase
+    .from("reviews")
+    .insert({
+      vet_id: vetId,
+      appt_id: apptId || null,
+      author_id: authorId,
+      rating,
+      comment,
+      author_name: authorName || "",
+      date: new Date().toISOString().slice(0, 10),
+    })
+    .select()
+    .single();
 }
 
 /** Rispondi a una recensione (vet) */
@@ -161,60 +194,77 @@ export async function replyToReview(id, reply) {
   return supabase.from("reviews").update({ reply }).eq("id", id).select().single();
 }
 
-
 /* ══════════════════════════════════════════════════════════════
    REFERTI
    ══════════════════════════════════════════════════════════════ */
 
 /** Crea un referto */
 export async function createReferto({ apptId, petId, vetId, title, diagnosis, treatments, drugs, advice, next }) {
-  return supabase.from("referti").insert({
-    appt_id: apptId,
-    pet_id: petId,
-    vet_id: vetId,
-    date: new Date().toISOString().slice(0, 10),
-    title,
-    diagnosis,
-    treatments: treatments || "",
-    drugs: drugs || "",
-    advice: advice || "",
-    next_visit: next || "",
-  }).select().single();
+  return supabase
+    .from("referti")
+    .insert({
+      appt_id: apptId,
+      pet_id: petId,
+      vet_id: vetId,
+      date: new Date().toISOString().slice(0, 10),
+      title,
+      diagnosis,
+      treatments: treatments || "",
+      drugs: drugs || "",
+      advice: advice || "",
+      next_visit: next || "",
+    })
+    .select()
+    .single();
 }
-
 
 /* ══════════════════════════════════════════════════════════════
    INVOICES
    ══════════════════════════════════════════════════════════════ */
 
 /** Crea una fattura */
-export async function createInvoice({ apptId, vetId, clientId, number, payment, items, enpav, iva, bollo, total, dest }) {
-  return supabase.from("invoices").insert({
-    appt_id: apptId || null,
-    vet_id: vetId,
-    client_id: clientId || null,
-    date: new Date().toISOString().slice(0, 10),
-    number,
-    payment,
-    items,       // JSONB — array di {desc, qty, price}
-    enpav,
-    iva,
-    bollo,
-    total,
-    status: "unpaid",
-    dest_name: dest?.fullName || "",
-    dest_cf: dest?.cf || "",
-    dest_address: dest?.address || "",
-    dest_email: dest?.email || "",
-    dest_phone: dest?.phone || "",
-  }).select().single();
+export async function createInvoice({
+  apptId,
+  vetId,
+  clientId,
+  number,
+  payment,
+  items,
+  enpav,
+  iva,
+  bollo,
+  total,
+  dest,
+}) {
+  return supabase
+    .from("invoices")
+    .insert({
+      appt_id: apptId || null,
+      vet_id: vetId,
+      client_id: clientId || null,
+      date: new Date().toISOString().slice(0, 10),
+      number,
+      payment,
+      items, // JSONB — array di {desc, qty, price}
+      enpav,
+      iva,
+      bollo,
+      total,
+      status: "unpaid",
+      dest_name: dest?.fullName || "",
+      dest_cf: dest?.cf || "",
+      dest_address: dest?.address || "",
+      dest_email: dest?.email || "",
+      dest_phone: dest?.phone || "",
+    })
+    .select()
+    .single();
 }
 
 /** Segna una fattura come pagata */
 export async function markInvoicePaid(id) {
   return supabase.from("invoices").update({ status: "paid" }).eq("id", id).select().single();
 }
-
 
 /* ══════════════════════════════════════════════════════════════
    PROFILES (proprietario)
@@ -237,7 +287,6 @@ export async function updateProfile(id, fields) {
 export async function updateClient(id, fields) {
   return updateProfile(id, fields);
 }
-
 
 /* ══════════════════════════════════════════════════════════════
    VETS (profilo veterinario)
@@ -279,25 +328,26 @@ export async function updateVetFees(vetId, fees) {
   return supabase.from("vets").update(updates).eq("id", vetId).select().single();
 }
 
-
 /* ══════════════════════════════════════════════════════════════
    VET_SERVICES (servizi del veterinario)
    ══════════════════════════════════════════════════════════════ */
 
 /** Attiva un servizio dal catalogo per un vet */
 export async function addVetService(vetId, catalogId, customPrice) {
-  return supabase.from("vet_services").insert({
-    vet_id: vetId,
-    catalog_id: catalogId,
-    custom_price: customPrice ?? null,
-  }).select().single();
+  return supabase
+    .from("vet_services")
+    .insert({
+      vet_id: vetId,
+      catalog_id: catalogId,
+      custom_price: customPrice ?? null,
+    })
+    .select()
+    .single();
 }
 
 /** Disattiva un servizio dal catalogo per un vet */
 export async function removeVetServiceByCatalog(vetId, catalogId) {
-  return supabase.from("vet_services").delete()
-    .eq("vet_id", vetId)
-    .eq("catalog_id", catalogId);
+  return supabase.from("vet_services").delete().eq("vet_id", vetId).eq("catalog_id", catalogId);
 }
 
 /** Rimuovi un servizio (custom o catalogo) per UUID */
@@ -307,37 +357,51 @@ export async function removeVetService(id) {
 
 /** Aggiorna il prezzo personalizzato di un servizio */
 export async function updateVetServicePrice(vetId, catalogId, customPrice) {
-  return supabase.from("vet_services").update({
-    custom_price: customPrice === "" || customPrice === null ? null : Number(customPrice),
-  }).eq("vet_id", vetId).eq("catalog_id", catalogId).select().single();
+  return supabase
+    .from("vet_services")
+    .update({
+      custom_price: customPrice === "" || customPrice === null ? null : Number(customPrice),
+    })
+    .eq("vet_id", vetId)
+    .eq("catalog_id", catalogId)
+    .select()
+    .single();
 }
 
 /** Aggiungi un servizio personalizzato (non dal catalogo) */
 export async function addCustomVetService(vetId, { name, price, duration, category, emoji, desc }) {
-  return supabase.from("vet_services").insert({
-    vet_id: vetId,
-    catalog_id: null,
-    custom_name: name,
-    custom_price: Number(price),
-    custom_duration: Number(duration),
-    custom_category: category || "Altro",
-    custom_emoji: emoji || "🩺",
-    custom_desc: desc || "",
-  }).select().single();
+  return supabase
+    .from("vet_services")
+    .insert({
+      vet_id: vetId,
+      catalog_id: null,
+      custom_name: name,
+      custom_price: Number(price),
+      custom_duration: Number(duration),
+      custom_category: category || "Altro",
+      custom_emoji: emoji || "🩺",
+      custom_desc: desc || "",
+    })
+    .select()
+    .single();
 }
 
 /** Aggiorna un servizio personalizzato */
 export async function updateCustomVetService(id, { name, price, duration, category, emoji, desc }) {
-  return supabase.from("vet_services").update({
-    custom_name: name,
-    custom_price: Number(price),
-    custom_duration: Number(duration),
-    custom_category: category,
-    custom_emoji: emoji,
-    custom_desc: desc || "",
-  }).eq("id", id).select().single();
+  return supabase
+    .from("vet_services")
+    .update({
+      custom_name: name,
+      custom_price: Number(price),
+      custom_duration: Number(duration),
+      custom_category: category,
+      custom_emoji: emoji,
+      custom_desc: desc || "",
+    })
+    .eq("id", id)
+    .select()
+    .single();
 }
-
 
 /* ══════════════════════════════════════════════════════════════
    NOTIFICATIONS — notifiche in-app
@@ -345,18 +409,23 @@ export async function updateCustomVetService(id, { name, price, duration, catego
 
 /** Crea una notifica per un utente */
 export async function createNotification({ userId, type, title, message, data }) {
-  return supabase.from("notifications").insert({
-    user_id: userId,
-    type,
-    title,
-    message: message || "",
-    data: data || {},
-  }).select().single();
+  return supabase
+    .from("notifications")
+    .insert({
+      user_id: userId,
+      type,
+      title,
+      message: message || "",
+      data: data || {},
+    })
+    .select()
+    .single();
 }
 
 /** Carica le notifiche di un utente (ultime 50) */
 export async function getNotifications(userId) {
-  return supabase.from("notifications")
+  return supabase
+    .from("notifications")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
@@ -373,7 +442,6 @@ export async function markAllNotificationsRead(userId) {
   return supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
 }
 
-
 /* ══════════════════════════════════════════════════════════════
    ACCOUNT — cancellazione account
    ══════════════════════════════════════════════════════════════ */
@@ -386,7 +454,6 @@ export async function deleteAccount(userId) {
   /* Cancella il profilo */
   return supabase.from("profiles").delete().eq("id", userId);
 }
-
 
 /* ══════════════════════════════════════════════════════════════
    UTILITY — controlla se Supabase è attivo

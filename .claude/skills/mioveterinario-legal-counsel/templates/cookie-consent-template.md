@@ -2,9 +2,9 @@
 
 ## Cookie inventory
 
-| Name/provider | Type | Purpose | Duration | Data shared | Consent needed? | Blocking mechanism |
-|---|---|---|---:|---|---|---|
-| [cookie] | technical/analytics/marketing | [purpose] | [duration] | [data] | yes/no | [CMP/config] |
+| Name/provider | Type                          | Purpose   |   Duration | Data shared | Consent needed? | Blocking mechanism |
+| ------------- | ----------------------------- | --------- | ---------: | ----------- | --------------- | ------------------ |
+| [cookie]      | technical/analytics/marketing | [purpose] | [duration] | [data]      | yes/no          | [CMP/config]       |
 
 ## Banner copy - first layer
 
@@ -45,4 +45,3 @@ Off by default. Use only after consent. Do not use pet/referto/appointment data 
 - [ ] Tag manager defaults to denied.
 - [ ] Server-side analytics also respects consent where required.
 - [ ] Consent log can prove choices.
-

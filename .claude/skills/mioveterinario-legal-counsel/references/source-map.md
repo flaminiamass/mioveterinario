@@ -178,4 +178,3 @@ When sources conflict or differ in detail, use this priority:
 2. Authority guidance and enforcement from Garante, EDPB, AGCOM, AGCM, ACN, Agenzia Entrate, Ministry of Health, FNOVI.
 3. Case law from official court sources when available.
 4. Legal blogs and law firm notes as interpretive support only, never as sole source for a definitive rule.
-

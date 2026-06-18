@@ -17,20 +17,20 @@ const QUICK_SERVICES = [
 ];
 
 const QUICK_DAYS = [
-  { key: "oggi",    label: "Oggi" },
-  { key: "domani",  label: "Domani" },
+  { key: "oggi", label: "Oggi" },
+  { key: "domani", label: "Domani" },
   { key: "weekend", label: "Weekend" },
-  { key: "",        label: "Qualsiasi" },
+  { key: "", label: "Qualsiasi" },
 ];
 
 const QUICK_TIMES = [
-  { key: "any",       label: "Qualsiasi" },
-  { key: "morning",   label: "Mattina" },
+  { key: "any", label: "Qualsiasi" },
+  { key: "morning", label: "Mattina" },
   { key: "afternoon", label: "Pomeriggio" },
-  { key: "evening",   label: "Sera" },
+  { key: "evening", label: "Sera" },
 ];
 
-const label = (text) => ({
+const labelStyle = {
   display: "block",
   fontSize: fontSize.xs,
   fontWeight: 700,
@@ -38,7 +38,7 @@ const label = (text) => ({
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   marginBottom: 6,
-});
+};
 
 const chipBase = (active) => ({
   padding: "8px 14px",
@@ -66,20 +66,21 @@ const divider = {
 export default function BookingQuickForm({ onSearch }) {
   const { pets } = useApp();
 
-  const [petId, setPetId] = useState(pets[0]?.id || "");
-  const [serviceId, setServiceId] = useState("sv1");
-  const [quickDate, setQuickDate] = useState("domani");
+  const [petId, setPetId] = useState("");
+  const [species, setSpecies] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const [quickDate, setQuickDate] = useState("");
   const [timeWindow, setTimeWindow] = useState("any");
   const [zone, setZone] = useState("Roma");
-  const [radiusKm, setRadiusKm] = useState(5);
+  const [radiusKm, setRadiusKm] = useState(10);
 
-  const selectedPet = pets.find(p => p.id === petId);
-  const species = selectedPet?.species || "";
+  const selectedPet = pets.find((p) => p.id === petId);
+  const effectiveSpecies = selectedPet?.species || species;
 
   const handleSearch = () => {
     onSearch({
       petId: petId || undefined,
-      species: species || undefined,
+      species: effectiveSpecies || undefined,
       serviceId: serviceId || undefined,
       quickDate,
       timeWindow,
@@ -90,24 +91,28 @@ export default function BookingQuickForm({ onSearch }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-
       {/* ── ANIMALE ── */}
       <div style={{ paddingBottom: 14 }}>
-        <span style={label("Il tuo animale")}>Il tuo animale</span>
+        <span style={labelStyle}>Il tuo animale</span>
         {pets.length > 0 ? (
           <div className="chip-scroll" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-            {pets.map(p => (
-              <button key={p.id} onClick={() => setPetId(petId === p.id ? "" : p.id)}
-                style={chipBase(petId === p.id)}>
+            {pets.map((p) => (
+              <button key={p.id} onClick={() => setPetId(petId === p.id ? "" : p.id)} style={chipBase(petId === p.id)}>
                 {p.photo} {p.name}
               </button>
             ))}
           </div>
         ) : (
-          <select style={{ ...selectStyle, width: "100%" }} value={petId} onChange={e => setPetId(e.target.value)}>
+          <select
+            style={{ ...selectStyle, width: "100%" }}
+            value={species}
+            onChange={(e) => setSpecies(e.target.value)}
+          >
             <option value="">Seleziona specie…</option>
-            {["Cane", "Gatto", "Coniglio", "Uccelli", "Rettili"].map(s => (
-              <option key={s} value={s}>{s}</option>
+            {["Cane", "Gatto", "Coniglio", "Uccelli", "Rettili"].map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
         )}
@@ -117,11 +122,14 @@ export default function BookingQuickForm({ onSearch }) {
 
       {/* ── TIPO VISITA ── */}
       <div style={{ paddingTop: 14, paddingBottom: 14 }}>
-        <span style={label("Tipo visita")}>Tipo visita</span>
+        <span style={labelStyle}>Tipo visita</span>
         <div className="chip-scroll" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-          {QUICK_SERVICES.map(s => (
-            <button key={s.id} onClick={() => setServiceId(serviceId === s.id ? "" : s.id)}
-              style={chipBase(serviceId === s.id)}>
+          {QUICK_SERVICES.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setServiceId(serviceId === s.id ? "" : s.id)}
+              style={chipBase(serviceId === s.id)}
+            >
               {s.label}
             </button>
           ))}
@@ -132,11 +140,10 @@ export default function BookingQuickForm({ onSearch }) {
 
       {/* ── GIORNO ── */}
       <div style={{ paddingTop: 14, paddingBottom: 14 }}>
-        <span style={label("Giorno")}>Giorno</span>
+        <span style={labelStyle}>Giorno</span>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {QUICK_DAYS.map(d => (
-            <button key={d.key || "any"} onClick={() => setQuickDate(d.key)}
-              style={chipBase(quickDate === d.key)}>
+          {QUICK_DAYS.map((d) => (
+            <button key={d.key || "any"} onClick={() => setQuickDate(d.key)} style={chipBase(quickDate === d.key)}>
               {d.label}
             </button>
           ))}
@@ -147,11 +154,10 @@ export default function BookingQuickForm({ onSearch }) {
 
       {/* ── ORARIO ── */}
       <div style={{ paddingTop: 14, paddingBottom: 14 }}>
-        <span style={label("Orario")}>Orario</span>
+        <span style={labelStyle}>Orario</span>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {QUICK_TIMES.map(t => (
-            <button key={t.key} onClick={() => setTimeWindow(t.key)}
-              style={chipBase(timeWindow === t.key)}>
+          {QUICK_TIMES.map((t) => (
+            <button key={t.key} onClick={() => setTimeWindow(t.key)} style={chipBase(timeWindow === t.key)}>
               {t.label}
             </button>
           ))}
@@ -164,18 +170,32 @@ export default function BookingQuickForm({ onSearch }) {
       <div style={{ paddingTop: 14, paddingBottom: 16 }}>
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1 }}>
-            <span style={label("Zona")}>Zona</span>
-            <select value={zone} onChange={e => setZone(e.target.value)}
-              style={{ ...selectStyle, width: "100%", fontSize: fontSize.md }}>
-              {ROME_ZONES.map(z => <option key={z.key} value={z.key}>{z.label}</option>)}
+            <span style={labelStyle}>Zona</span>
+            <select
+              value={zone}
+              onChange={(e) => setZone(e.target.value)}
+              style={{ ...selectStyle, width: "100%", fontSize: fontSize.md }}
+            >
+              {ROME_ZONES.map((z) => (
+                <option key={z.key} value={z.key}>
+                  {z.label}
+                </option>
+              ))}
               <option value="Vicino a me">📍 Vicino a me</option>
             </select>
           </div>
           <div style={{ flex: 1 }}>
-            <span style={label("Raggio")}>Raggio</span>
-            <select value={radiusKm} onChange={e => setRadiusKm(Number(e.target.value))}
-              style={{ ...selectStyle, width: "100%", fontSize: fontSize.md }}>
-              {RADIUS_OPTIONS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+            <span style={labelStyle}>Raggio</span>
+            <select
+              value={radiusKm}
+              onChange={(e) => setRadiusKm(Number(e.target.value))}
+              style={{ ...selectStyle, width: "100%", fontSize: fontSize.md }}
+            >
+              {RADIUS_OPTIONS.map((r) => (
+                <option key={r.key} value={r.key}>
+                  {r.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

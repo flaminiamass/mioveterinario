@@ -14,7 +14,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("IL-TUO-PROGETTO")) {
   console.warn(
     "⚠️ Supabase non configurato. L'app usa i dati demo.\n" +
-    "Per connettere il database, modifica .env.local con le tue credenziali Supabase."
+      "Per connettere il database, modifica .env.local con le tue credenziali Supabase."
   );
 }
 

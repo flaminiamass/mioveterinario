@@ -34,18 +34,18 @@ Do not enter human health data or third-party personal data in notes unless it i
 
 ### 3. Why we process data and legal bases
 
-| Purpose | Data | Legal basis |
-|---|---|---|
-| Create and manage your account | account/contact | contract |
-| Search, book, manage visits | pet, booking, contact | contract/pre-contract |
-| Share booking details with the chosen vet | booking, pet, owner contact | contract; legitimate interest |
-| Show referti and documents | veterinary documents | contract/service delivery; role may depend on vet relationship |
-| Invoices and accounting | fiscal/payment | legal obligation; contract |
-| Reviews and trust features | review, appointment verification | contract; legitimate interest |
-| Security, fraud, abuse prevention | logs, device, IP | legitimate interest; legal obligation |
-| Customer support | account, booking, messages | contract; legitimate interest |
-| Marketing/newsletter | email, consent | consent, or limited soft spam where allowed |
-| Cookies/analytics/profiling | identifiers, usage data | consent where required |
+| Purpose                                   | Data                             | Legal basis                                                    |
+| ----------------------------------------- | -------------------------------- | -------------------------------------------------------------- |
+| Create and manage your account            | account/contact                  | contract                                                       |
+| Search, book, manage visits               | pet, booking, contact            | contract/pre-contract                                          |
+| Share booking details with the chosen vet | booking, pet, owner contact      | contract; legitimate interest                                  |
+| Show referti and documents                | veterinary documents             | contract/service delivery; role may depend on vet relationship |
+| Invoices and accounting                   | fiscal/payment                   | legal obligation; contract                                     |
+| Reviews and trust features                | review, appointment verification | contract; legitimate interest                                  |
+| Security, fraud, abuse prevention         | logs, device, IP                 | legitimate interest; legal obligation                          |
+| Customer support                          | account, booking, messages       | contract; legitimate interest                                  |
+| Marketing/newsletter                      | email, consent                   | consent, or limited soft spam where allowed                    |
+| Cookies/analytics/profiling               | identifiers, usage data          | consent where required                                         |
 
 If human health data is accidentally or necessarily provided, we will process it only where a valid GDPR basis and exception apply, and with additional safeguards.
 
@@ -98,4 +98,3 @@ See Cookie Policy: [link]
 ### 10. Changes
 
 We may update this notice. Material changes will be communicated through the app or email where appropriate.
-
