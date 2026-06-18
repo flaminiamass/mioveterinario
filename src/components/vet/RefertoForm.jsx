@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import { today, fmtDate } from "../../data/helpers.js";
+import { createReferto, isSupabaseConfigured } from "../../lib/db.js";
+import { mapReferto } from "../../lib/mappers.js";
 import { colors, fontSize, inputStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
@@ -42,8 +44,14 @@ export default function RefertoForm({ appt, vetId, onDone }) {
         <p style={{ fontSize: fontSize.xs, color: colors.textMuted, marginTop: 8, lineHeight: 1.5 }}>
           ⚠️ Per farmaci soggetti a prescrizione usa la Ricetta Veterinaria Elettronica (REV) ufficiale. Il campo "Farmaci" è solo un promemoria clinico per il proprietario.
         </p>
-        <Btn variant="accent" style={{ marginTop: 12, width: "100%" }} disabled={!f.title || !f.diagnosis} onClick={() => {
-          setReferti([...referti, { id: "r" + Date.now(), apptId: appt.id, petId: appt.petId, vetId, date: fmtDate(today), ...f }]);
+        <Btn variant="accent" style={{ marginTop: 12, width: "100%" }} disabled={!f.title || !f.diagnosis} onClick={async () => {
+          if (isSupabaseConfigured()) {
+            const { data, error } = await createReferto({ apptId: appt.id, petId: appt.petId, vetId, ...f });
+            if (error) { notify("❌ Errore: " + error.message); return; }
+            setReferti([...referti, mapReferto(data)]);
+          } else {
+            setReferti([...referti, { id: "r" + Date.now(), apptId: appt.id, petId: appt.petId, vetId, date: fmtDate(today), ...f }]);
+          }
           notify("📄 Referto creato e condiviso col proprietario."); onDone();
         }}>Salva e condividi referto</Btn>
       </Card>

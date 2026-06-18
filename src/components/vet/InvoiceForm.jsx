@@ -4,6 +4,8 @@ import { ORANGE } from "../../data/constants.js";
 import { today, fmtDate } from "../../data/helpers.js";
 import { getService } from "../../data/services.js";
 import useIsMobile from "../../hooks/useIsMobile.js";
+import * as db from "../../lib/db.js";
+import { mapInvoice } from "../../lib/mappers.js";
 import { TEAL, colors, fontSize, radius, compactInputStyle, selectStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
@@ -54,22 +56,35 @@ export default function InvoiceForm({ appt, vetId, onDone }) {
   const upd = (ix, k, v) => setItems(items.map((it, i) => i === ix ? { ...it, [k]: v } : it));
   const removeItem = (ix) => setItems(items.filter((_, i) => i !== ix));
 
-  const emitInvoice = () => {
+  const emitInvoice = async () => {
     /* Salva/aggiorna dati del client per le prossime volte */
     if (clientId && client) {
       const updatedClient = { ...client, ...dest };
       setClients(clients.map(c => c.id === clientId ? updatedClient : c));
+      if (db.isSupabaseConfigured()) {
+        await db.updateClient(clientId, dest);
+      }
     }
 
-    setInvoices([...invoices, {
-      id: "f" + Date.now(), apptId: appt.id, vetId, clientId: clientId || null,
-      date: fmtDate(today), number: invoiceNumber, payment,
-      items: items.map(i => ({ ...i, qty: Number(i.qty), price: Number(i.price) })),
-      enpav, iva, bollo, total, status: "unpaid",
-      /* Snapshot dati destinatario (per stampa/PDF futuri) */
-      destName: dest.fullName, destCf: dest.cf, destAddress: dest.address,
-      destEmail: dest.email, destPhone: dest.phone,
-    }]);
+    const invoiceItems = items.map(i => ({ ...i, qty: Number(i.qty), price: Number(i.price) }));
+
+    if (db.isSupabaseConfigured()) {
+      const { data, error } = await db.createInvoice({
+        apptId: appt.id, vetId, clientId: clientId || null,
+        number: invoiceNumber, payment, items: invoiceItems,
+        enpav, iva, bollo, total, dest,
+      });
+      if (error) { notify("❌ Errore: " + error.message); return; }
+      setInvoices([...invoices, mapInvoice(data)]);
+    } else {
+      setInvoices([...invoices, {
+        id: "f" + Date.now(), apptId: appt.id, vetId, clientId: clientId || null,
+        date: fmtDate(today), number: invoiceNumber, payment,
+        items: invoiceItems, enpav, iva, bollo, total, status: "unpaid",
+        destName: dest.fullName, destCf: dest.cf, destAddress: dest.address,
+        destEmail: dest.email, destPhone: dest.phone,
+      }]);
+    }
     notify("🧾 Fattura emessa.");
     onDone();
   };

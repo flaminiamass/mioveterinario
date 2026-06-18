@@ -8,28 +8,36 @@ import VetAppts from "./VetAppts.jsx";
 import VetPatients from "./VetPatients.jsx";
 import VetBilling from "./VetBilling.jsx";
 import VetProfileTab from "./VetProfileTab.jsx";
+import VetPersonalProfile from "./VetPersonalProfile.jsx";
 import LegalFooter from "../legal/LegalFooter.jsx";
 
 export default function VetApp({ onLogout, onNav }) {
   const { vetId, vets } = useApp();
   const vet = vets.find(v => v.id === vetId);
   const [tab, setTab] = useState("agenda");
+  const [showProfile, setShowProfile] = useState(false);
   const tabs = [
     ["agenda", "📅", "Agenda"], ["appts", "🗓️", "Visite"], ["patients", "🐾", "Pazienti"],
-    ["billing", "🧾", "Fatture"], ["profile", "⭐", "Profilo"],
+    ["billing", "🧾", "Fatture"], ["profile", "⭐", "Servizi"],
   ];
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 86 }}>
-      <Header title="MioVeterinario Pro" subtitle={`${vet?.name} · ${vet?.clinic}`} onLogout={onLogout} />
+      <Header title="MioVeterinario Pro" subtitle={vet ? `${vet.name || "Veterinario"} · ${vet.clinic || "Studio"}` : "Caricamento..."} onLogout={onLogout} onProfile={() => setShowProfile(true)} />
       <div style={{ padding: space["3xl"] }}>
-        {tab === "agenda" && <VetAgenda vetId={vetId} />}
-        {tab === "appts" && <VetAppts vetId={vetId} />}
-        {tab === "patients" && <VetPatients vetId={vetId} />}
-        {tab === "billing" && <VetBilling vetId={vetId} />}
-        {tab === "profile" && <VetProfileTab vetId={vetId} />}
+        {showProfile ? (
+          <VetPersonalProfile onBack={() => setShowProfile(false)} />
+        ) : (
+          <>
+            {tab === "agenda" && <VetAgenda vetId={vetId} />}
+            {tab === "appts" && <VetAppts vetId={vetId} />}
+            {tab === "patients" && <VetPatients vetId={vetId} />}
+            {tab === "billing" && <VetBilling vetId={vetId} />}
+            {tab === "profile" && <VetProfileTab vetId={vetId} />}
+          </>
+        )}
       </div>
       <LegalFooter onNav={onNav} />
-      <BottomNav tabs={tabs} active={tab} onChange={setTab} />
+      <BottomNav tabs={tabs} active={tab} onChange={(t) => { setTab(t); setShowProfile(false); }} />
     </div>
   );
 }

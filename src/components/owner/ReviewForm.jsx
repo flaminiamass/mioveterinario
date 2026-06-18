@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
+import { useAuthContext } from "../../context/AuthContext.jsx";
 import { today, fmtDate } from "../../data/helpers.js";
+import { createReview, isSupabaseConfigured } from "../../lib/db.js";
+import { mapReview } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 
 export default function ReviewForm({ appt, onDone }) {
   const { vets, reviews, setReviews, notify, ownerProfile } = useApp();
+  const { user } = useAuthContext();
   const vet = vets.find(v => v.id === appt.vetId);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -30,8 +34,14 @@ export default function ReviewForm({ appt, onDone }) {
         <textarea id="review-comment" value={comment} onChange={e => setComment(e.target.value)} rows={4} placeholder="Com'è andata la visita?"
           style={{ ...inputStyle, borderRadius: radius.lg, marginTop: 6 }} maxLength={500} />
         <div style={{ textAlign: "right", fontSize: fontSize.xs, color: comment.length > 450 ? colors.danger || "#E53E3E" : colors.textMuted, marginTop: 2 }}>{comment.length}/500</div>
-        <Btn variant="accent" style={{ marginTop: 12, width: "100%" }} disabled={!comment} onClick={() => {
-          setReviews([...reviews, { id: "rv" + Date.now(), vetId: appt.vetId, apptId: appt.id, rating, comment, reply: null, date: fmtDate(today), author: ownerProfile.name }]);
+        <Btn variant="accent" style={{ marginTop: 12, width: "100%" }} disabled={!comment} onClick={async () => {
+          if (isSupabaseConfigured() && user) {
+            const { data, error } = await createReview({ vetId: appt.vetId, apptId: appt.id, authorId: user.id, rating, comment, authorName: ownerProfile.name });
+            if (error) { notify("❌ Errore: " + error.message); return; }
+            setReviews([...reviews, mapReview(data)]);
+          } else {
+            setReviews([...reviews, { id: "rv" + Date.now(), vetId: appt.vetId, apptId: appt.id, rating, comment, reply: null, date: fmtDate(today), author: ownerProfile.name }]);
+          }
           notify("⭐ Grazie per la recensione!"); onDone();
         }}>Invia recensione</Btn>
       </Card>

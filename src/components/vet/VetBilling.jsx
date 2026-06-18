@@ -2,6 +2,7 @@ import { useApp } from "../../context/AppContext.jsx";
 import { TEAL, ORANGE, colors, fontSize } from "../../styles/tokens.js";
 import { printInvoice } from "../../utils/invoicePrint.js";
 import useIsMobile from "../../hooks/useIsMobile.js";
+import { markInvoicePaid, isSupabaseConfigured } from "../../lib/db.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
@@ -57,7 +58,14 @@ export default function VetBilling({ vetId }) {
                     const dest = { fullName: f.destName || cl?.fullName || "—", cf: f.destCf || cl?.cf || "", address: f.destAddress || cl?.address || "", email: f.destEmail || cl?.email || "", phone: f.destPhone || cl?.phone || "" };
                     printInvoice(f, vet, dest);
                   }}>📥 Scarica</Btn>
-                  {f.status !== "paid" && <Btn small variant="light" onClick={() => { setInvoices(invoices.map(x => x.id === f.id ? { ...x, status: "paid" } : x)); notify("Fattura segnata come pagata."); }}>Segna pagata</Btn>}
+                  {f.status !== "paid" && <Btn small variant="light" onClick={async () => {
+                    setInvoices(invoices.map(x => x.id === f.id ? { ...x, status: "paid" } : x));
+                    notify("Fattura segnata come pagata.");
+                    if (isSupabaseConfigured()) {
+                      const { error } = await markInvoicePaid(f.id);
+                      if (error) notify("❌ Errore salvataggio: " + error.message);
+                    }
+                  }}>Segna pagata</Btn>}
                 </div>
               </div>
             </Card>

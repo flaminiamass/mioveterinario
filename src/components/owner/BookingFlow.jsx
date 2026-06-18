@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
+import { useAuthContext } from "../../context/AuthContext.jsx";
 import { TEAL, ORANGE, SLOT_TIMES } from "../../data/constants.js";
 import { addDays } from "../../data/helpers.js";
 import { SERVICE_CATEGORIES, getTypeFromService, getVetServices } from "../../data/services.js";
+import { createAppointment, isSupabaseConfigured } from "../../lib/db.js";
+import { mapAppointment } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
@@ -11,7 +14,8 @@ import Card from "../ui/Card.jsx";
 const CAT_EMOJI = { Visite: "🩺", Vaccini: "💉", Analisi: "🩸", Diagnostica: "📷", Chirurgia: "🏥", Altro: "📋" };
 
 export default function BookingFlow({ vet, onDone, onCancel }) {
-  const { pets, appts, setAppts } = useApp();
+  const { pets, appts, setAppts, notify } = useApp();
+  const { user } = useAuthContext();
   /* Ordine step: Animale → Prestazione → Orario → Conferma → Fatto */
   const [step, setStep] = useState(1);
   const [petId, setPetId] = useState(pets[0]?.id || "");
@@ -47,12 +51,21 @@ export default function BookingFlow({ vet, onDone, onCancel }) {
   const takenSlots = appts.filter(a => a.vetId === vet.id && a.date === date && a.status !== "cancelled").map(a => a.time);
   const freeSlots = SLOT_TIMES.filter(t => !takenSlots.includes(t));
 
-  const confirm = () => {
-    setAppts([...appts, {
-      id: "a" + Date.now(), petId, vetId: vet.id, date, time, type,
-      serviceId, status: "pending", ownerNotes: notes, vetNotes: "", proposal: null,
-      createdAt: new Date().toISOString(),
-    }]);
+  const confirm = async () => {
+    if (isSupabaseConfigured() && user) {
+      const { data, error } = await createAppointment({
+        petId, vetId: vet.id, ownerId: user.id,
+        date, time, type, serviceId, ownerNotes: notes,
+      });
+      if (error) { notify("❌ Errore nel salvataggio: " + error.message); return; }
+      setAppts([...appts, mapAppointment(data)]);
+    } else {
+      setAppts([...appts, {
+        id: "a" + Date.now(), petId, vetId: vet.id, date, time, type,
+        serviceId, status: "pending", ownerNotes: notes, vetNotes: "", proposal: null,
+        createdAt: new Date().toISOString(),
+      }]);
+    }
     setStep(5);
   };
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import { TEAL, ORANGE, colors, fontSize, radius, compactInputStyle, selectStyle } from "../../styles/tokens.js";
 import { VET_SERVICES, SERVICE_CATEGORIES, SERVICE_EMOJIS } from "../../data/services.js";
+import * as db from "../../lib/db.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 import Stars from "../ui/Stars.jsx";
@@ -23,18 +24,25 @@ const CAT_EMOJI = { Visite: "🩺", Vaccini: "💉", Analisi: "🩸", Diagnostic
 export default function VetProfileTab({ vetId }) {
   const { vets, setVets, reviews, setReviews, notify } = useApp();
   const vet = vets.find(v => v.id === vetId);
-  const mine = reviews.filter(r => r.vetId === vetId);
   const [replyFor, setReplyFor] = useState(null);
   const [replyText, setReplyText] = useState("");
 
+  if (!vet) return <Card>⏳ Caricamento profilo...</Card>;
+
+  const mine = reviews.filter(r => r.vetId === vetId);
+
   /* Gestione disponibilità */
   const workDays = vet.workDays || [1, 2, 3, 4, 5];
-  const toggleDay = (dayKey) => {
+  const toggleDay = async (dayKey) => {
     const updated = workDays.includes(dayKey)
       ? workDays.filter(d => d !== dayKey)
       : [...workDays, dayKey].sort((a, b) => a - b);
     setVets(vets.map(v => v.id === vetId ? { ...v, workDays: updated } : v));
     notify("📅 Disponibilità aggiornata!");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.updateVetWorkDays(vetId, updated);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   /* ── Gestione servizi / listino ── */
@@ -46,14 +54,21 @@ export default function VetProfileTab({ vetId }) {
   const toggleCat = (cat) => setOpenCats({ ...openCats, [cat]: !openCats[cat] });
 
   /* Aggiunge/rimuove un servizio dal catalogo */
-  const toggleService = (svcId) => {
+  const toggleService = async (svcId) => {
     let updated;
     if (activeIds.includes(svcId)) {
       updated = vetServices.filter(s => s.id !== svcId);
+      setVets(vets.map(v => v.id === vetId ? { ...v, services: updated } : v));
+      if (db.isSupabaseConfigured()) {
+        await db.removeVetServiceByCatalog(vetId, svcId);
+      }
     } else {
       updated = [...vetServices, { id: svcId, price: null }];
+      setVets(vets.map(v => v.id === vetId ? { ...v, services: updated } : v));
+      if (db.isSupabaseConfigured()) {
+        await db.addVetService(vetId, svcId, null);
+      }
     }
-    setVets(vets.map(v => v.id === vetId ? { ...v, services: updated } : v));
   };
 
   /* Aggiorna il prezzo custom di un servizio */
@@ -62,6 +77,11 @@ export default function VetProfileTab({ vetId }) {
       s.id === svcId ? { ...s, price: newPrice === "" ? null : Number(newPrice) } : s
     );
     setVets(vets.map(v => v.id === vetId ? { ...v, services: updated } : v));
+    /* Il salvataggio del prezzo avviene con debounce (quando l'utente cambia campo),
+       ma per semplicità salviamo subito. */
+    if (db.isSupabaseConfigured()) {
+      db.updateVetServicePrice(vetId, svcId, newPrice);
+    }
   };
 
   /* Servizi custom del vet (id non inizia con "sv") */
@@ -71,25 +91,41 @@ export default function VetProfileTab({ vetId }) {
   const [addingCustom, setAddingCustom] = useState(false);
   const [customForm, setCustomForm] = useState({ name: "", price: "", duration: "", cat: "Visite", emoji: "🩺", desc: "" });
 
-  const addCustomService = () => {
-    const newSvc = {
-      id: "c_" + vetId + "_" + Date.now(), // eslint-disable-line react-hooks/purity
-      name: customForm.name,
-      price: Number(customForm.price),
-      duration: Number(customForm.duration),
-      cat: customForm.cat,
-      emoji: customForm.emoji,
-      desc: customForm.desc || "",
-    };
-    setVets(vets.map(v => v.id === vetId ? { ...v, services: [...vetServices, newSvc] } : v));
+  const addCustomService = async () => {
+    if (db.isSupabaseConfigured()) {
+      const { data, error } = await db.addCustomVetService(vetId, {
+        name: customForm.name, price: customForm.price,
+        duration: customForm.duration, category: customForm.cat,
+        emoji: customForm.emoji, desc: customForm.desc,
+      });
+      if (error) { notify("❌ Errore: " + error.message); return; }
+      /* Aggiungi allo stato locale con l'id generato da Supabase */
+      const newSvc = {
+        id: data.id, name: data.custom_name,
+        price: Number(data.custom_price), duration: Number(data.custom_duration),
+        cat: data.custom_category, emoji: data.custom_emoji, desc: data.custom_desc || "",
+      };
+      setVets(vets.map(v => v.id === vetId ? { ...v, services: [...vetServices, newSvc] } : v));
+    } else {
+      const newSvc = {
+        id: "c_" + vetId + "_" + Date.now(),
+        name: customForm.name, price: Number(customForm.price),
+        duration: Number(customForm.duration), cat: customForm.cat,
+        emoji: customForm.emoji, desc: customForm.desc || "",
+      };
+      setVets(vets.map(v => v.id === vetId ? { ...v, services: [...vetServices, newSvc] } : v));
+    }
     setCustomForm({ name: "", price: "", duration: "", cat: "Visite", emoji: "🩺", desc: "" });
     setAddingCustom(false);
     notify("✅ Servizio aggiunto!");
   };
 
-  const removeCustom = (svcId) => {
+  const removeCustom = async (svcId) => {
     setVets(vets.map(v => v.id === vetId ? { ...v, services: vetServices.filter(s => s.id !== svcId) } : v));
     notify("🗑️ Servizio rimosso");
+    if (db.isSupabaseConfigured()) {
+      await db.removeVetService(svcId);
+    }
   };
 
   /* Stato per modifica servizio custom */
@@ -101,13 +137,21 @@ export default function VetProfileTab({ vetId }) {
     setEditForm({ name: svc.name, price: svc.price, duration: svc.duration, cat: svc.cat, emoji: svc.emoji, desc: svc.desc || "" });
   };
 
-  const saveEditCustom = (svcId) => {
+  const saveEditCustom = async (svcId) => {
     const updated = vetServices.map(s =>
       s.id === svcId ? { ...s, ...editForm, price: Number(editForm.price), duration: Number(editForm.duration) } : s
     );
     setVets(vets.map(v => v.id === vetId ? { ...v, services: updated } : v));
     setEditingCustom(null);
     notify("✅ Servizio aggiornato!");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.updateCustomVetService(svcId, {
+        name: editForm.name, price: editForm.price,
+        duration: editForm.duration, category: editForm.cat,
+        emoji: editForm.emoji, desc: editForm.desc,
+      });
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   return (
@@ -337,7 +381,14 @@ export default function VetProfileTab({ vetId }) {
                 <textarea id={`reply-${r.id}`} value={replyText} onChange={e => setReplyText(e.target.value)} rows={2} placeholder="Scrivi una risposta…"
                   style={{ width: "100%", borderRadius: radius.md, border: `1px solid ${colors.border}`, padding: 8, fontSize: fontSize.md, boxSizing: "border-box", fontFamily: "inherit", marginTop: 4 }} />
                 <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                  <Btn small onClick={() => { setReviews(reviews.map(x => x.id === r.id ? { ...x, reply: replyText } : x)); setReplyFor(null); setReplyText(""); notify("Risposta pubblicata."); }} disabled={!replyText}>Pubblica</Btn>
+                  <Btn small onClick={async () => {
+                    setReviews(reviews.map(x => x.id === r.id ? { ...x, reply: replyText } : x));
+                    setReplyFor(null); setReplyText(""); notify("Risposta pubblicata.");
+                    if (db.isSupabaseConfigured()) {
+                      const { error } = await db.replyToReview(r.id, replyText);
+                      if (error) notify("❌ Errore salvataggio: " + error.message);
+                    }
+                  }} disabled={!replyText}>Pubblica</Btn>
                   <Btn small variant="light" onClick={() => setReplyFor(null)}>Annulla</Btn>
                 </div>
               </div>

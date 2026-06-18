@@ -3,6 +3,8 @@ import { useApp } from "../../context/AppContext.jsx";
 import { TEAL, TYPE_META } from "../../data/constants.js";
 import { fmtDate } from "../../data/helpers.js";
 import { getService } from "../../data/services.js";
+import * as db from "../../lib/db.js";
+import { mapVaccine } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Badge from "../ui/Badge.jsx";
 import Btn from "../ui/Btn.jsx";
@@ -37,11 +39,15 @@ export default function PetDetail({ pet, onBack }) {
     }
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     setPets(pets.map(p => p.id === pet.id ? { ...p, ...form, weight: form.weight ? Number(form.weight) : "" } : p));
     savedForm.current = { ...form };
     setEditing(false);
     notify("✏️ Dati aggiornati!");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.updatePet(pet.id, form);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   /* Aggiungi vaccino */
@@ -115,8 +121,14 @@ export default function PetDetail({ pet, onBack }) {
           <label htmlFor="vax-vet" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Veterinario</label>
           <input id="vax-vet" style={vaxInp} placeholder="Es: Dott.ssa Marchetti" value={vaxForm.vet} onChange={e => setVaxForm({ ...vaxForm, vet: e.target.value })} />
 
-          <Btn style={{ marginTop: 14, width: "100%" }} disabled={!vaxForm.name || !vaxForm.date} onClick={() => {
-            setVaccines([...vaccines, { petId: pet.id, name: vaxForm.name, date: vaxForm.date, due: vaxForm.due || null, vet: vaxForm.vet || "—" }]);
+          <Btn style={{ marginTop: 14, width: "100%" }} disabled={!vaxForm.name || !vaxForm.date} onClick={async () => {
+            if (db.isSupabaseConfigured()) {
+              const { data, error } = await db.createVaccine({ petId: pet.id, name: vaxForm.name, date: vaxForm.date, due: vaxForm.due || null, vetName: vaxForm.vet || "—" });
+              if (error) { notify("❌ Errore: " + error.message); return; }
+              setVaccines([...vaccines, mapVaccine(data)]);
+            } else {
+              setVaccines([...vaccines, { petId: pet.id, name: vaxForm.name, date: vaxForm.date, due: vaxForm.due || null, vet: vaxForm.vet || "—" }]);
+            }
             setVaxForm({ name: "", date: "", due: "", vet: "" });
             setAddingVax(false);
             notify("💉 Vaccino aggiunto!");

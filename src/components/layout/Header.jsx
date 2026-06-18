@@ -9,9 +9,11 @@ export default function Header({ title, subtitle, onLogout, onProfile }) {
         <div style={{ fontWeight: 900, fontSize: fontSize["3xl"], display: "flex", alignItems: "center", gap: 8 }}><img src={logoImg} alt="" style={{ width: 30, height: 30, borderRadius: radius.circle }} /> {title}</div>
         <div style={{ fontSize: fontSize.sm, opacity: 0.85 }}>{subtitle}</div>
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
         {onProfile && (
-          <button onClick={onProfile} aria-label="Il mio profilo" style={{ background: "rgba(255,255,255,0.18)", border: "none", borderRadius: radius.md, color: colors.white, fontSize: 18, cursor: "pointer", padding: "6px 10px", minWidth: 36, minHeight: 36 }}>👤</button>
+          <button onClick={onProfile} aria-label="Il mio profilo" style={{ background: "rgba(255,255,255,0.18)", border: "none", borderRadius: radius.md, color: colors.white, cursor: "pointer", padding: "6px 10px", minHeight: 36, display: "flex", alignItems: "center", gap: 4, fontSize: fontSize.sm, fontWeight: 600 }}>
+            👤 <span>Profilo</span>
+          </button>
         )}
         <Btn small variant="light" onClick={onLogout} style={{ background: "rgba(255,255,255,0.18)", color: colors.white }}>Esci</Btn>
       </div>

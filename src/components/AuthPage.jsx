@@ -25,6 +25,7 @@ export default function AuthPage({ onNav }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [resetSent, setResetSent] = useState(false);
 
   /* Estrai il messaggio d'errore (Supabase può restituire formati diversi) */
   const getErrorMessage = (err) => {
@@ -64,8 +65,26 @@ export default function AuthPage({ onNav }) {
     });
 
     setLoading(false);
-    if (err) setError(translateError(err));
+    if (err) {
+      setError(translateError(err));
+    }
     /* Se il login ha successo, onAuthStateChange in useAuth si occupa del resto */
+  };
+
+  const handleResetPassword = async () => {
+    if (!email.trim()) {
+      setError("Inserisci la tua email prima di cliccare 'Password dimenticata'.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim());
+    setLoading(false);
+    if (err) {
+      setError(translateError(err));
+    } else {
+      setResetSent(true);
+    }
   };
 
   const handleSignup = async (e) => {
@@ -97,6 +116,26 @@ export default function AuthPage({ onNav }) {
       setSuccess("Registrazione completata! Controlla la tua email per confermare l'account, poi torna qui per accedere.");
     }
   };
+
+  /* Se il reset password è stato inviato */
+  if (resetSent) {
+    return (
+      <div style={{ maxWidth: 420, margin: "0 auto", padding: 24, textAlign: "center" }}>
+        <div style={{ marginTop: 60 }}>
+          <img src={logoImg} alt="MioVeterinario logo" style={{ width: 90, height: 90, borderRadius: radius.circle, margin: "0 auto", display: "block", boxShadow: shadow.logo }} />
+          <h1 style={{ fontSize: 28, margin: "18px 0 4px", color: ORANGE, fontWeight: 900 }}>Mio<span style={{ color: TEAL }}>Veterinario</span></h1>
+        </div>
+        <div style={{ marginTop: 30, background: "#E3F2FD", borderRadius: radius.lg, padding: "20px", lineHeight: 1.7, color: "#1565C0", fontSize: fontSize.base }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>📧</div>
+          <b>Email inviata!</b>
+          <p style={{ marginTop: 10 }}>Se l'indirizzo <b>{email}</b> è registrato, riceverai un'email con il link per reimpostare la password. Controlla anche la cartella spam.</p>
+        </div>
+        <Btn style={{ marginTop: 20, width: "100%" }} onClick={() => { setResetSent(false); setPassword(""); }}>
+          ← Torna al login
+        </Btn>
+      </div>
+    );
+  }
 
   /* Se la registrazione è andata a buon fine, mostra il messaggio di successo */
   if (success) {
@@ -206,6 +245,12 @@ export default function AuthPage({ onNav }) {
             minLength={6}
             style={inputStyle}
           />
+          {mode === "login" && (
+            <button type="button" onClick={handleResetPassword}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: fontSize.sm, color: TEAL, fontWeight: 600, padding: "6px 0", marginTop: 4 }}>
+              Password dimenticata?
+            </button>
+          )}
         </div>
 
         {/* Selezione ruolo — solo in registrazione */}

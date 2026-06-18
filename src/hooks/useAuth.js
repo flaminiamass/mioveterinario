@@ -16,7 +16,9 @@ export default function useAuth() {
   const [profile, setProfile] = useState(null);   // riga dalla tabella profiles
   const [loading, setLoading] = useState(true);   // true finché non sappiamo se è loggato
 
-  /* Carica il profilo dalla tabella profiles */
+  /* Carica il profilo dalla tabella profiles.
+     Se il profilo non esiste → l'account è incompleto/corrotto,
+     forziamo il logout così l'utente torna alla schermata di login. */
   const fetchProfile = useCallback(async (userId) => {
     const { data, error } = await supabase
       .from("profiles")
@@ -24,11 +26,12 @@ export default function useAuth() {
       .eq("id", userId)
       .single();
 
-    if (error) {
-      console.warn("Errore caricamento profilo:", error.message);
-      return null;
-    }
-    return data;
+    if (data) return data;
+
+    /* Profilo non trovato → logout forzato */
+    console.warn("Profilo non trovato per utente", userId, "— logout forzato.", error?.message);
+    await supabase.auth.signOut();
+    return null;
   }, []);
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export default function useAuth() {
         setUser(session.user);
         const p = await fetchProfile(session.user.id);
         setProfile(p);
+        if (!p) setUser(null); // profilo mancante → resetta anche user
       }
       setLoading(false);
     });
@@ -55,6 +59,7 @@ export default function useAuth() {
           setUser(session.user);
           const p = await fetchProfile(session.user.id);
           setProfile(p);
+          if (!p) setUser(null); // profilo mancante → resetta anche user
         } else if (event === "SIGNED_OUT") {
           setUser(null);
           setProfile(null);

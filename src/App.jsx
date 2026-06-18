@@ -17,7 +17,7 @@ import TermsOfService from "./components/legal/TermsOfService.jsx";
 import CookiePolicy from "./components/legal/CookiePolicy.jsx";
 
 export default function App() {
-  const { role, setRole, toast } = useApp();
+  const { role, setRole, toast, dataLoading } = useApp();
   const { user, profile, loading: authLoading, signOut } = useAuthContext();
   const [legalPage, setLegalPage] = useState(null);
 
@@ -48,6 +48,17 @@ export default function App() {
       /* Non loggato → pagina di login */
       if (!user || !profile) {
         return <AuthPage onNav={showLegal} />;
+      }
+
+      /* Caricamento dati dal database */
+      if (dataLoading) {
+        return (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "80vh", gap: 16 }}>
+            <div style={{ width: 48, height: 48, border: `4px solid ${colors.bgBtn}`, borderTop: `4px solid ${TEAL}`, borderRadius: radius.circle, animation: "spin 0.8s linear infinite" }} />
+            <p style={{ color: colors.textMuted, fontSize: fontSize.base }}>Caricamento dati...</p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        );
       }
 
       /* Loggato come owner */

@@ -3,6 +3,7 @@ import { useApp } from "../../context/AppContext.jsx";
 import { TYPE_META, SLOT_TIMES } from "../../data/constants.js";
 import { today, fmtDate, addDays } from "../../data/helpers.js";
 import { getService } from "../../data/services.js";
+import * as db from "../../lib/db.js";
 import { TEAL, ORANGE, colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Badge from "../ui/Badge.jsx";
 import Btn from "../ui/Btn.jsx";
@@ -35,22 +36,35 @@ export default function OwnerAppts({ onReview }) {
   const propDays = Array.from({ length: 14 }, (_, i) => addDays(i + 1));
 
   /* Accetta proposta del vet */
-  const acceptProposal = (a) => {
+  const acceptProposal = async (a) => {
     setAppts(appts.map(x => x.id === a.id ? { ...x, date: a.proposal.date, time: a.proposal.time, proposal: null, status: "confirmed" } : x));
     notify("✅ Proposta accettata! Appuntamento aggiornato.");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.acceptProposal(a.id, a.proposal.date, a.proposal.time);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   /* Rifiuta proposta del vet */
-  const rejectProposal = (a) => {
+  const rejectProposal = async (a) => {
     setAppts(appts.map(x => x.id === a.id ? { ...x, proposal: null } : x));
     notify("Proposta rifiutata.");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.rejectProposal(a.id);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   /* Invia proposta modifica dall'owner */
-  const sendProposal = (apptId) => {
-    setAppts(appts.map(x => x.id === apptId ? { ...x, proposal: { from: "owner", date: propDate, time: propTime, message: propMsg || "" } } : x));
+  const sendProposal = async (apptId) => {
+    const proposal = { from: "owner", date: propDate, time: propTime, message: propMsg || "" };
+    setAppts(appts.map(x => x.id === apptId ? { ...x, proposal } : x));
     setEditingId(null);
     notify("📝 Proposta di modifica inviata al veterinario!");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.sendProposal(apptId, proposal);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   return (
@@ -145,9 +159,13 @@ export default function OwnerAppts({ onReview }) {
         message="Vuoi davvero cancellare questo appuntamento? L'azione non può essere annullata."
         confirmLabel="Sì, cancella"
         onCancel={() => setCancelId(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setAppts(appts.map(x => x.id === cancelId ? { ...x, status: "cancelled" } : x));
           notify("Visita cancellata.");
+          if (db.isSupabaseConfigured()) {
+            const { error } = await db.updateAppointmentStatus(cancelId, "cancelled");
+            if (error) notify("❌ Errore salvataggio: " + error.message);
+          }
           setCancelId(null);
         }}
       />

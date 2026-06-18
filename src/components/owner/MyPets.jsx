@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
+import { useAuthContext } from "../../context/AuthContext.jsx";
 import { TEAL } from "../../data/constants.js";
 import { today } from "../../data/helpers.js";
+import { createPet, isSupabaseConfigured } from "../../lib/db.js";
+import { mapPet } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
@@ -19,6 +22,7 @@ const PHOTO_OPTIONS = {
 
 export default function MyPets({ onView }) {
   const { pets, setPets, notify } = useApp();
+  const { user } = useAuthContext();
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ name: "", species: "Cane", breed: "", dob: "", weight: "", chip: "", sex: "", photo: "🐶" });
   const inp = { ...inputStyle, marginTop: 6 };
@@ -73,8 +77,14 @@ export default function MyPets({ onView }) {
           <label htmlFor="pet-add-chip" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Numero microchip</label>
           <input id="pet-add-chip" style={inp} placeholder="Es: 380260101234567" value={form.chip} onChange={e => setForm({ ...form, chip: e.target.value })} />
 
-          <Btn style={{ marginTop: 14, width: "100%" }} disabled={!form.name} onClick={() => {
-            setPets([...pets, { id: "p" + Date.now(), ...form, weight: form.weight ? Number(form.weight) : "" }]);
+          <Btn style={{ marginTop: 14, width: "100%" }} disabled={!form.name} onClick={async () => {
+            if (isSupabaseConfigured() && user) {
+              const { data, error } = await createPet({ ownerId: user.id, ...form });
+              if (error) { notify("❌ Errore: " + error.message); return; }
+              setPets([...pets, mapPet(data)]);
+            } else {
+              setPets([...pets, { id: "p" + Date.now(), ...form, weight: form.weight ? Number(form.weight) : "" }]);
+            }
             setForm({ name: "", species: "Cane", breed: "", dob: "", weight: "", chip: "", sex: "", photo: "🐶" });
             setAdding(false);
             notify("🐾 Animale aggiunto!");

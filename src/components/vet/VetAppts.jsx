@@ -3,6 +3,7 @@ import { useApp } from "../../context/AppContext.jsx";
 import { STATUS_META, TYPE_META, SLOT_TIMES } from "../../data/constants.js";
 import { addDays } from "../../data/helpers.js";
 import { getService } from "../../data/services.js";
+import * as db from "../../lib/db.js";
 import { TEAL, ORANGE, colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Badge from "../ui/Badge.jsx";
 import Btn from "../ui/Btn.jsx";
@@ -38,27 +39,47 @@ export default function VetAppts({ vetId }) {
   const [propMsg, setPropMsg] = useState("");
 
   const list = appts.filter(a => a.vetId === vetId && (filter === "all" || a.status === filter)).sort((a, b) => b.date.localeCompare(a.date));
-  const setStatus = (id, status) => { setAppts(appts.map(a => a.id === id ? { ...a, status } : a)); notify(`Stato aggiornato: ${STATUS_META[status].label}`); };
+  const setStatus = async (id, status) => {
+    setAppts(appts.map(a => a.id === id ? { ...a, status } : a));
+    notify(`Stato aggiornato: ${STATUS_META[status].label}`);
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.updateAppointmentStatus(id, status);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
+  };
 
   const propDays = Array.from({ length: 14 }, (_, i) => addDays(i + 1));
 
   /* Accetta proposta dell'owner */
-  const acceptProposal = (a) => {
+  const acceptProposal = async (a) => {
     setAppts(appts.map(x => x.id === a.id ? { ...x, date: a.proposal.date, time: a.proposal.time, proposal: null } : x));
     notify("✅ Proposta accettata! Appuntamento aggiornato.");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.acceptProposal(a.id, a.proposal.date, a.proposal.time);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   /* Rifiuta proposta dell'owner */
-  const rejectProposal = (a) => {
+  const rejectProposal = async (a) => {
     setAppts(appts.map(x => x.id === a.id ? { ...x, proposal: null } : x));
     notify("Proposta rifiutata.");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.rejectProposal(a.id);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   /* Invia proposta alternativa dal vet */
-  const sendProposal = (apptId) => {
-    setAppts(appts.map(x => x.id === apptId ? { ...x, proposal: { from: "vet", date: propDate, time: propTime, message: propMsg || "" } } : x));
+  const sendProposal = async (apptId) => {
+    const proposal = { from: "vet", date: propDate, time: propTime, message: propMsg || "" };
+    setAppts(appts.map(x => x.id === apptId ? { ...x, proposal } : x));
     setProposingId(null);
     notify("📅 Proposta alternativa inviata al proprietario!");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.sendProposal(apptId, proposal);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   if (refertoFor) return <RefertoForm appt={refertoFor} vetId={vetId} onDone={() => setRefertoFor(null)} />;
@@ -129,9 +150,13 @@ export default function VetAppts({ vetId }) {
                     placeholder="Nota breve per il proprietario…" style={{ ...inputStyle, borderRadius: radius.lg }} />
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     <Btn small variant="light" onClick={() => setNotingId(null)}>Annulla</Btn>
-                    <Btn small disabled={!noteText} onClick={() => {
+                    <Btn small disabled={!noteText} onClick={async () => {
                       setAppts(appts.map(x => x.id === a.id ? { ...x, vetNotes: noteText } : x));
                       notify("📝 Nota aggiunta."); setNotingId(null);
+                      if (db.isSupabaseConfigured()) {
+                        const { error } = await db.updateVetNotes(a.id, noteText);
+                        if (error) notify("❌ Errore salvataggio: " + error.message);
+                      }
                     }}>Salva nota</Btn>
                   </div>
                 </div>
@@ -175,9 +200,13 @@ export default function VetAppts({ vetId }) {
       <RejectDialog
         open={!!rejectingId}
         onCancel={() => setRejectingId(null)}
-        onReject={(reason) => {
+        onReject={async (reason) => {
           setAppts(appts.map(a => a.id === rejectingId ? { ...a, status: "cancelled", rejectReason: reason || "" } : a));
           notify("Appuntamento rifiutato.");
+          if (db.isSupabaseConfigured()) {
+            const { error } = await db.updateAppointmentStatus(rejectingId, "cancelled", { rejectReason: reason || "" });
+            if (error) notify("❌ Errore salvataggio: " + error.message);
+          }
           setRejectingId(null);
         }}
       />

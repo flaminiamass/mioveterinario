@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
+import { updateClient, isSupabaseConfigured } from "../../lib/db.js";
 import { TEAL, colors, fontSize, radius, searchInputStyle, compactInputStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
@@ -34,10 +35,14 @@ export default function VetPatients({ vetId }) {
     setEditForm({ fullName: cl.fullName, cf: cl.cf, address: cl.address, email: cl.email, phone: cl.phone });
   };
 
-  const saveEdit = (clId) => {
+  const saveEdit = async (clId) => {
     setClients(clients.map(cl => cl.id === clId ? { ...cl, ...editForm } : cl));
     setEditingClient(null);
     notify("✅ Dati cliente aggiornati!");
+    if (isSupabaseConfigured()) {
+      const { error } = await updateClient(clId, editForm);
+      if (error) notify("❌ Errore salvataggio: " + error.message);
+    }
   };
 
   /* Espandi/comprimi dettagli */
