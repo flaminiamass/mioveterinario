@@ -1,13 +1,35 @@
 /* Context React — gestisce tutto lo stato condiviso dell'app.
-   Ogni componente può accedere ai dati con useApp() invece di riceverli a catena. */
+   Ogni componente può accedere ai dati con useApp() invece di riceverli a catena.
+
+   Supporta due modalità:
+   - Demo (senza Supabase): usa seedData, role da Landing
+   - Supabase: role e profilo vengono da AuthContext */
 
 import { useState, createContext, useContext } from "react";
 import { seedVets, seedPets, seedAppointments, seedReferti, seedInvoices, seedReviews, seedVaccines, seedClients } from "../data/seedData.js";
+import { isSupabaseConfigured } from "../lib/supabaseClient.js";
+import { useAuthContext } from "./AuthContext.jsx";
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [role, setRole] = useState(null); // null | 'owner' | 'vet'
+  const { profile } = useAuthContext();
+  const supabaseActive = isSupabaseConfigured();
+
+  /* ── Role e vetId ── */
+  // In modalità Supabase: role viene dal profilo auth
+  // In modalità demo: role viene dal vecchio stato locale
+  const [demoRole, setDemoRole] = useState(null);
+  const role = supabaseActive ? (profile?.role || null) : demoRole;
+  const setRole = setDemoRole; // solo per modalità demo
+
+  /* VetId: in modalità Supabase sarà derivato dal profilo vet collegato all'utente.
+     Per ora usiamo "v1" come fallback (sarà aggiornato nella Fase 3). */
+  const [demoVetId, setDemoVetId] = useState("v1");
+  const vetId = demoVetId;
+  const setVetId = setDemoVetId;
+
+  /* ── Dati ── */
   const [vets, setVets] = useState(seedVets);
   const [pets, setPets] = useState(seedPets);
   const [appts, setAppts] = useState(seedAppointments);
@@ -18,19 +40,27 @@ export function AppProvider({ children }) {
   const [clients, setClients] = useState(seedClients);
   const [toast, setToast] = useState(null);
 
-  /* Demo: id del veterinario loggato (sarà da Supabase auth in futuro) */
-  const [vetId, setVetId] = useState("v1");
-
-  /* Profilo proprietario DEMO FITTIZIO — in produzione viene da Supabase Auth.
-     Non usare nomi o CF reali nei dati di seed. */
-  const [ownerProfile, setOwnerProfile] = useState({
-    name: "Demo U.",
-    fullName: "Demo Utente",
-    phone: "+39 333 0000000",
-    email: "demo@mioveterinario.it",
-    cf: "DMOUTN80A01H501Z",
-    address: "Via Esempio 42, 00100 Roma",
-  });
+  /* Profilo proprietario — in modalità Supabase, usa i dati dal profilo auth.
+     In modalità demo, usa dati fittizi. */
+  const [ownerProfile, setOwnerProfile] = useState(
+    supabaseActive && profile?.role === "owner"
+      ? {
+          name: profile.display_name || "Utente",
+          fullName: profile.full_name || profile.display_name || "",
+          phone: profile.phone || "",
+          email: profile.email || "",
+          cf: profile.cf || "",
+          address: profile.address || "",
+        }
+      : {
+          name: "Demo U.",
+          fullName: "Demo Utente",
+          phone: "+39 333 0000000",
+          email: "demo@mioveterinario.it",
+          cf: "DMOUTN80A01H501Z",
+          address: "Via Esempio 42, 00100 Roma",
+        }
+  );
 
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2600); };
 

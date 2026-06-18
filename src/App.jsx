@@ -1,9 +1,14 @@
 /* MioVeterinario — App principale
-   Smista fra Landing, Owner, Vet e pagine legali in base al ruolo/route selezionato. */
+   Smista fra AuthPage/Landing, Owner, Vet e pagine legali.
+   Se Supabase è configurato → usa autenticazione reale.
+   Se non configurato → usa il vecchio Landing con selezione ruolo (demo). */
 
 import { useState } from "react";
 import { useApp } from "./context/AppContext.jsx";
-import { colors, fontSize, radius, shadow } from "./styles/tokens.js";
+import { useAuthContext } from "./context/AuthContext.jsx";
+import { isSupabaseConfigured } from "./lib/supabaseClient.js";
+import { TEAL, colors, fontSize, radius, shadow } from "./styles/tokens.js";
+import AuthPage from "./components/AuthPage.jsx";
 import Landing from "./components/Landing.jsx";
 import OwnerApp from "./components/owner/OwnerApp.jsx";
 import VetApp from "./components/vet/VetApp.jsx";
@@ -13,11 +18,13 @@ import CookiePolicy from "./components/legal/CookiePolicy.jsx";
 
 export default function App() {
   const { role, setRole, toast } = useApp();
-  /* legalPage: null | 'privacy' | 'terms' | 'cookie' */
+  const { user, profile, loading: authLoading, signOut } = useAuthContext();
   const [legalPage, setLegalPage] = useState(null);
 
   const showLegal = (page) => setLegalPage(page);
   const hideLegal = () => setLegalPage(null);
+
+  const supabaseActive = isSupabaseConfigured();
 
   const renderContent = () => {
     /* Pagine legali — accessibili da qualsiasi stato */
@@ -25,6 +32,34 @@ export default function App() {
     if (legalPage === "terms")   return <TermsOfService onBack={hideLegal} />;
     if (legalPage === "cookie")  return <CookiePolicy onBack={hideLegal} />;
 
+    /* ─── Modalità Supabase (auth reale) ─── */
+    if (supabaseActive) {
+      /* Spinner di caricamento mentre verifica la sessione */
+      if (authLoading) {
+        return (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "80vh", gap: 16 }}>
+            <div style={{ width: 48, height: 48, border: `4px solid ${colors.bgBtn}`, borderTop: `4px solid ${TEAL}`, borderRadius: radius.circle, animation: "spin 0.8s linear infinite" }} />
+            <p style={{ color: colors.textMuted, fontSize: fontSize.base }}>Caricamento...</p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        );
+      }
+
+      /* Non loggato → pagina di login */
+      if (!user || !profile) {
+        return <AuthPage onNav={showLegal} />;
+      }
+
+      /* Loggato come owner */
+      if (profile.role === "owner") {
+        return <OwnerApp onLogout={signOut} onNav={showLegal} />;
+      }
+
+      /* Loggato come vet */
+      return <VetApp onLogout={signOut} onNav={showLegal} />;
+    }
+
+    /* ─── Modalità demo (senza Supabase) ─── */
     if (!role) return <Landing onLogin={setRole} onNav={showLegal} />;
     if (role === "owner") return <OwnerApp onLogout={() => setRole(null)} onNav={showLegal} />;
     return <VetApp onLogout={() => setRole(null)} onNav={showLegal} />;
