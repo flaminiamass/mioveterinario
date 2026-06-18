@@ -21,22 +21,22 @@ export default function RefertoForm({ appt, vetId, onDone }) {
         </div>
 
         <label htmlFor="ref-title" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Titolo *</label>
-        <input id="ref-title" style={inp} placeholder="Es. Visita dermatologica" value={f.title} onChange={e => setF({ ...f, title: e.target.value })} />
+        <input id="ref-title" style={inp} placeholder="Es. Visita dermatologica" value={f.title} onChange={e => setF({ ...f, title: e.target.value })} maxLength={100} />
 
         <label htmlFor="ref-diag" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Diagnosi *</label>
-        <textarea id="ref-diag" style={inp} rows={2} placeholder="Diagnosi" value={f.diagnosis} onChange={e => setF({ ...f, diagnosis: e.target.value })} />
+        <textarea id="ref-diag" style={inp} rows={2} placeholder="Diagnosi" value={f.diagnosis} onChange={e => setF({ ...f, diagnosis: e.target.value })} maxLength={2000} />
 
         <label htmlFor="ref-treat" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Trattamenti</label>
-        <textarea id="ref-treat" style={inp} rows={2} placeholder="Trattamenti effettuati" value={f.treatments} onChange={e => setF({ ...f, treatments: e.target.value })} />
+        <textarea id="ref-treat" style={inp} rows={2} placeholder="Trattamenti effettuati" value={f.treatments} onChange={e => setF({ ...f, treatments: e.target.value })} maxLength={1000} />
 
         <label htmlFor="ref-drugs" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Farmaci</label>
-        <textarea id="ref-drugs" style={inp} rows={2} placeholder="Farmaci prescritti" value={f.drugs} onChange={e => setF({ ...f, drugs: e.target.value })} />
+        <textarea id="ref-drugs" style={inp} rows={2} placeholder="Farmaci prescritti" value={f.drugs} onChange={e => setF({ ...f, drugs: e.target.value })} maxLength={500} />
 
         <label htmlFor="ref-advice" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Indicazioni</label>
-        <textarea id="ref-advice" style={inp} rows={2} placeholder="Indicazioni per il proprietario" value={f.advice} onChange={e => setF({ ...f, advice: e.target.value })} />
+        <textarea id="ref-advice" style={inp} rows={2} placeholder="Indicazioni per il proprietario" value={f.advice} onChange={e => setF({ ...f, advice: e.target.value })} maxLength={1000} />
 
         <label htmlFor="ref-next" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Prossima visita</label>
-        <input id="ref-next" style={inp} placeholder="Prossima visita consigliata" value={f.next} onChange={e => setF({ ...f, next: e.target.value })} />
+        <input id="ref-next" style={inp} placeholder="Prossima visita consigliata" value={f.next} onChange={e => setF({ ...f, next: e.target.value })} maxLength={100} />
 
         {/* Avviso farmaci — non sostituisce REV */}
         <p style={{ fontSize: fontSize.xs, color: colors.textMuted, marginTop: 8, lineHeight: 1.5 }}>

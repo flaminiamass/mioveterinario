@@ -13,8 +13,9 @@ import OwnerAppts from "./OwnerAppts.jsx";
 import ReviewForm from "./ReviewForm.jsx";
 import OwnerDocs from "./OwnerDocs.jsx";
 import OwnerProfile from "./OwnerProfile.jsx";
+import LegalFooter from "../legal/LegalFooter.jsx";
 
-export default function OwnerApp({ onLogout }) {
+export default function OwnerApp({ onLogout, onNav }) {
   const { ownerProfile } = useApp();
   const [tab, setTab] = useState("home");
   const [bookingVet, setBookingVet] = useState(null);
@@ -54,6 +55,7 @@ export default function OwnerApp({ onLogout }) {
           </>
         )}
       </div>
+      <LegalFooter onNav={onNav} />
       <BottomNav tabs={tabs} active={tab} onChange={(t) => { setTab(t); resetOverlays(); }} />
     </div>
   );

@@ -6,7 +6,7 @@ import { addDays } from "./helpers.js";
 
 export const seedVets = [
   {
-    id: "v1", name: "Dott.ssa Elena Marchetti", clinic: "Clinica Veterinaria Aurelia",
+    id: "v1", status: "verified", name: "Dott.ssa Elena Marchetti", clinic: "Clinica Veterinaria Aurelia",
     city: "Roma", address: "Via Aurelia 240, Roma", spec: ["Medicina generale", "Dermatologia"],
     animals: ["Cane", "Gatto"], bio: "15 anni di esperienza in medicina dei piccoli animali. Particolare attenzione alla dermatologia e alle patologie croniche.",
     fees: { clinic: 50, home: 80, video: 35 }, rating: 4.8, reviews: 124, avatar: "👩‍⚕️",
@@ -28,7 +28,7 @@ export const seedVets = [
     ],
   },
   {
-    id: "v2", name: "Dott. Marco Ferri", clinic: "Ambulatorio Ferri",
+    id: "v2", status: "verified", name: "Dott. Marco Ferri", clinic: "Ambulatorio Ferri",
     city: "Roma", address: "Viale Trastevere 101, Roma", spec: ["Ortopedia", "Chirurgia"],
     animals: ["Cane", "Gatto", "Coniglio"], bio: "Specialista in ortopedia e chirurgia dei tessuti molli. Referente per casi complessi.",
     fees: { clinic: 65, home: null, video: 40 }, rating: 4.9, reviews: 89, avatar: "👨‍⚕️",
@@ -46,7 +46,7 @@ export const seedVets = [
     ],
   },
   {
-    id: "v3", name: "Dott.ssa Sara Colombo", clinic: "VetCare Balduina",
+    id: "v3", status: "verified", name: "Dott.ssa Sara Colombo", clinic: "VetCare Balduina",
     city: "Roma", address: "Piazza Giovenale 8, Roma", spec: ["Animali esotici", "Medicina generale"],
     animals: ["Coniglio", "Uccelli", "Rettili", "Cane", "Gatto"], bio: "Esperta in animali esotici e non convenzionali. Approccio gentile e fear-free.",
     fees: { clinic: 55, home: 90, video: 30 }, rating: 4.7, reviews: 56, avatar: "👩‍⚕️",

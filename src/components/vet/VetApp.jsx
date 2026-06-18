@@ -8,8 +8,9 @@ import VetAppts from "./VetAppts.jsx";
 import VetPatients from "./VetPatients.jsx";
 import VetBilling from "./VetBilling.jsx";
 import VetProfileTab from "./VetProfileTab.jsx";
+import LegalFooter from "../legal/LegalFooter.jsx";
 
-export default function VetApp({ onLogout }) {
+export default function VetApp({ onLogout, onNav }) {
   const { vetId, vets } = useApp();
   const vet = vets.find(v => v.id === vetId);
   const [tab, setTab] = useState("agenda");
@@ -27,6 +28,7 @@ export default function VetApp({ onLogout }) {
         {tab === "billing" && <VetBilling vetId={vetId} />}
         {tab === "profile" && <VetProfileTab vetId={vetId} />}
       </div>
+      <LegalFooter onNav={onNav} />
       <BottomNav tabs={tabs} active={tab} onChange={setTab} />
     </div>
   );

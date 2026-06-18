@@ -16,6 +16,7 @@ export default function SearchVets({ onView }) {
 
   const filtered = useMemo(() => {
     let r = vets.filter(v =>
+      v.status === "verified" &&
       (!q || v.name.toLowerCase().includes(q.toLowerCase()) || v.spec.join(" ").toLowerCase().includes(q.toLowerCase()) || v.city.toLowerCase().includes(q.toLowerCase())) &&
       (!animal || v.animals.includes(animal)) &&
       (!type || v.types.includes(type))
@@ -56,7 +57,7 @@ export default function SearchVets({ onView }) {
             <div style={{ display: "flex", gap: 12 }}>
               <div style={{ fontSize: 40 }}>{v.avatar}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: fontSize.xl }}>{v.name}</div>
+                <div style={{ fontWeight: 700, fontSize: fontSize.xl }}>{v.name} <span style={{ fontSize: fontSize.xs, color: TEAL, fontWeight: 600, background: colors.bgTealLight, padding: "2px 7px", borderRadius: radius.md }}>✓ Verificato</span></div>
                 <div style={{ color: colors.textSecondary, fontSize: fontSize.md }}>{v.clinic} · {v.city}</div>
                 <div style={{ marginTop: 4 }}><Stars n={v.rating} /> <span style={{ fontSize: fontSize.md, color: colors.textSecondary }}>{v.rating} ({v.reviews} recensioni)</span></div>
                 <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
