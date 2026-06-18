@@ -21,10 +21,19 @@ const FILTER_OPTIONS = [
   { key: "cancelled", label: "Cancellate" },
 ];
 
-export default function OwnerAppts({ onReview }) {
-  const { appts, setAppts, pets, vets, reviews, notify } = useApp();
+const CANCEL_REASONS = [
+  "Non posso in quella data",
+  "Ho trovato un altro veterinario",
+  "L'animale sta meglio",
+  "Altro",
+];
+
+export default function OwnerAppts({ onReview, onGoSearch }) {
+  const { appts, setAppts, pets, vets, reviews, ownerProfile, notify } = useApp();
   const [filter, setFilter] = useState("all");
   const [cancelId, setCancelId] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelOtherText, setCancelOtherText] = useState("");
   /* Proposta modifica */
   const [editingId, setEditingId] = useState(null);
   const [propDate, setPropDate] = useState("");
@@ -58,12 +67,18 @@ export default function OwnerAppts({ onReview }) {
   /* Invia proposta modifica dall'owner */
   const sendProposal = async (apptId) => {
     const proposal = { from: "owner", date: propDate, time: propTime, message: propMsg || "" };
+    const appt = appts.find(a => a.id === apptId);
+    const vetObj = vets.find(v => v.id === appt?.vetId);
     setAppts(appts.map(x => x.id === apptId ? { ...x, proposal } : x));
     setEditingId(null);
     notify("📝 Proposta di modifica inviata al veterinario!");
     if (db.isSupabaseConfigured()) {
       const { error } = await db.sendProposal(apptId, proposal);
       if (error) notify("❌ Errore salvataggio: " + error.message);
+      /* Notifica al vet */
+      if (vetObj?.userId) {
+        db.createNotification({ userId: vetObj.userId, type: "appt_proposal", title: `📝 Proposta modifica`, message: `${ownerProfile.name || "Un cliente"} propone: ${propDate} alle ${propTime}${propMsg ? ` — "${propMsg}"` : ""}` });
+      }
     }
   };
 
@@ -72,7 +87,10 @@ export default function OwnerAppts({ onReview }) {
       <SectionTitle>Le mie visite</SectionTitle>
       <FilterPills options={FILTER_OPTIONS} active={filter} onChange={setFilter} />
       <div style={{ display: "grid", gap: 10 }}>
-        {list.length === 0 && <Empty icon="📅" text="Nessuna visita in questa categoria" />}
+        {list.length === 0 && appts.length === 0 && (
+          <Empty icon="📅" text="Non hai ancora visite" sub="Cerca un veterinario e prenota la prima!" action={onGoSearch && <Btn variant="accent" onClick={onGoSearch}>🔍 Cerca veterinario</Btn>} />
+        )}
+        {list.length === 0 && appts.length > 0 && <Empty icon="📅" text="Nessuna visita in questa categoria" />}
         {list.map(a => {
           const pet = pets.find(p => p.id === a.petId);
           const vet = vets.find(v => v.id === a.vetId);
@@ -93,6 +111,7 @@ export default function OwnerAppts({ onReview }) {
                   {a.ownerNotes && <div style={{ fontSize: fontSize.md, color: colors.textMedium, marginTop: 4 }}>📝 {a.ownerNotes}</div>}
                   {a.vetNotes && <div style={{ fontSize: fontSize.md, color: TEAL, marginTop: 4, background: colors.bgTealSel, padding: "4px 8px", borderRadius: radius.sm }}>👩‍⚕️ Note vet: {a.vetNotes}</div>}
                   {a.rejectReason && a.status === "cancelled" && <div style={{ fontSize: fontSize.md, color: colors.dangerFg, marginTop: 4, background: colors.dangerBg, padding: "4px 8px", borderRadius: radius.sm }}>❌ Motivo rifiuto: {a.rejectReason}</div>}
+                  {a.ownerCancelReason && a.status === "cancelled" && <div style={{ fontSize: fontSize.md, color: colors.textMedium, marginTop: 4, background: colors.bgLight, padding: "4px 8px", borderRadius: radius.sm }}>🙍 Motivo cancellazione: {a.ownerCancelReason}</div>}
                 </div>
                 <Badge status={a.status} />
               </div>
@@ -153,22 +172,49 @@ export default function OwnerAppts({ onReview }) {
         })}
       </div>
 
-      <ConfirmDialog
-        open={!!cancelId}
-        title="Cancellare la visita?"
-        message="Vuoi davvero cancellare questo appuntamento? L'azione non può essere annullata."
-        confirmLabel="Sì, cancella"
-        onCancel={() => setCancelId(null)}
-        onConfirm={async () => {
-          setAppts(appts.map(x => x.id === cancelId ? { ...x, status: "cancelled" } : x));
-          notify("Visita cancellata.");
-          if (db.isSupabaseConfigured()) {
-            const { error } = await db.updateAppointmentStatus(cancelId, "cancelled");
-            if (error) notify("❌ Errore salvataggio: " + error.message);
-          }
-          setCancelId(null);
-        }}
-      />
+      {/* Dialog cancellazione con motivo */}
+      {cancelId && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <Card style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>🗑️</div>
+            <b style={{ fontSize: fontSize.xl }}>Cancellare la visita?</b>
+            <p style={{ fontSize: fontSize.base, color: colors.textMuted, margin: "8px 0 14px" }}>Seleziona il motivo della cancellazione:</p>
+            <div style={{ display: "grid", gap: 8, textAlign: "left" }}>
+              {CANCEL_REASONS.map(r => (
+                <button key={r} onClick={() => { setCancelReason(r); if (r !== "Altro") setCancelOtherText(""); }}
+                  style={{ padding: "10px 14px", borderRadius: radius.md, border: `2px solid ${cancelReason === r ? TEAL : colors.borderLight}`, background: cancelReason === r ? colors.bgTealSel : colors.white, cursor: "pointer", fontFamily: "inherit", fontSize: fontSize.base, fontWeight: cancelReason === r ? 700 : 400, textAlign: "left", color: colors.textDark }}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            {cancelReason === "Altro" && (
+              <textarea value={cancelOtherText} onChange={e => setCancelOtherText(e.target.value)}
+                placeholder="Spiega brevemente…" rows={2}
+                style={{ ...inputStyle, borderRadius: radius.md, marginTop: 10, width: "100%", boxSizing: "border-box" }} />
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "center" }}>
+              <Btn variant="light" onClick={() => { setCancelId(null); setCancelReason(""); setCancelOtherText(""); }}>Annulla</Btn>
+              <Btn variant="danger" disabled={!cancelReason || (cancelReason === "Altro" && !cancelOtherText.trim())} onClick={async () => {
+                const reason = cancelReason === "Altro" ? cancelOtherText.trim() : cancelReason;
+                const appt = appts.find(a => a.id === cancelId);
+                const pet = pets.find(p => p.id === appt?.petId);
+                const vetObj = vets.find(v => v.id === appt?.vetId);
+                setAppts(appts.map(x => x.id === cancelId ? { ...x, status: "cancelled", ownerCancelReason: reason } : x));
+                notify("Visita cancellata.");
+                if (db.isSupabaseConfigured()) {
+                  const { error } = await db.updateAppointmentStatus(cancelId, "cancelled", { ownerCancelReason: reason });
+                  if (error) notify("❌ Errore salvataggio: " + error.message);
+                  /* Notifica al vet */
+                  if (vetObj?.userId) {
+                    db.createNotification({ userId: vetObj.userId, type: "appt_cancelled", title: `🙍 Visita cancellata`, message: `${ownerProfile.name || "Un cliente"} ha cancellato la visita di ${pet?.name || "un animale"} del ${appt?.date} alle ${appt?.time}. Motivo: ${reason}` });
+                  }
+                }
+                setCancelId(null); setCancelReason(""); setCancelOtherText("");
+              }}>Sì, cancella</Btn>
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   );
 }

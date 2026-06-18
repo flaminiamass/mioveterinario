@@ -55,7 +55,8 @@ export default function VetPatients({ vetId }) {
         style={{ ...searchInputStyle, marginBottom: 14 }} />
 
       <div style={{ display: "grid", gap: 10 }}>
-        {filteredClients.length === 0 && <Empty icon="🐾" text="Nessun cliente trovato" />}
+        {filteredClients.length === 0 && myClients.length === 0 && <Empty icon="🐾" text="Non hai ancora pazienti" sub="Appariranno qui quando riceverai prenotazioni" />}
+        {filteredClients.length === 0 && myClients.length > 0 && <Empty icon="🔍" text="Nessun cliente trovato" sub="Prova a cambiare la ricerca" />}
         {filteredClients.map(cl => {
           const clientPets = pets.filter(p => cl.petIds.includes(p.id));
           const isExpanded = expanded === cl.id;

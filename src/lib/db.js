@@ -33,6 +33,7 @@ export async function createAppointment({ petId, vetId, ownerId, date, time, typ
 export async function updateAppointmentStatus(id, status, extra = {}) {
   const updates = { status };
   if (extra.rejectReason !== undefined) updates.reject_reason = extra.rejectReason;
+  if (extra.ownerCancelReason !== undefined) updates.owner_cancel_reason = extra.ownerCancelReason;
   return supabase.from("appointments").update(updates).eq("id", id).select().single();
 }
 
@@ -87,6 +88,11 @@ export async function createPet({ ownerId, name, species, breed, dob, weight, ch
   }).select().single();
 }
 
+/** Cancella un animale */
+export async function deletePet(id) {
+  return supabase.from("pets").delete().eq("id", id);
+}
+
 /** Aggiorna un animale */
 export async function updatePet(id, fields) {
   const updates = {};
@@ -115,6 +121,21 @@ export async function createVaccine({ petId, name, date, due, vetName }) {
     due: due || null,
     vet_name: vetName || "",
   }).select().single();
+}
+
+/** Aggiorna un vaccino */
+export async function updateVaccine(id, fields) {
+  const updates = {};
+  if (fields.name !== undefined) updates.name = fields.name;
+  if (fields.date !== undefined) updates.date = fields.date;
+  if (fields.due !== undefined) updates.due = fields.due;
+  if (fields.vetName !== undefined) updates.vet_name = fields.vetName;
+  return supabase.from("vaccines").update(updates).eq("id", id).select().single();
+}
+
+/** Cancella un vaccino */
+export async function deleteVaccine(id) {
+  return supabase.from("vaccines").delete().eq("id", id);
 }
 
 
@@ -315,6 +336,41 @@ export async function updateCustomVetService(id, { name, price, duration, catego
     custom_emoji: emoji,
     custom_desc: desc || "",
   }).eq("id", id).select().single();
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   NOTIFICATIONS — notifiche in-app
+   ══════════════════════════════════════════════════════════════ */
+
+/** Crea una notifica per un utente */
+export async function createNotification({ userId, type, title, message, data }) {
+  return supabase.from("notifications").insert({
+    user_id: userId,
+    type,
+    title,
+    message: message || "",
+    data: data || {},
+  }).select().single();
+}
+
+/** Carica le notifiche di un utente (ultime 50) */
+export async function getNotifications(userId) {
+  return supabase.from("notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+}
+
+/** Segna una notifica come letta */
+export async function markNotificationRead(id) {
+  return supabase.from("notifications").update({ read: true }).eq("id", id);
+}
+
+/** Segna tutte le notifiche come lette */
+export async function markAllNotificationsRead(userId) {
+  return supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
 }
 
 

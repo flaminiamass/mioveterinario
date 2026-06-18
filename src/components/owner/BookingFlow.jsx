@@ -2,56 +2,84 @@ import { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import { useAuthContext } from "../../context/AuthContext.jsx";
 import { TEAL, ORANGE, SLOT_TIMES } from "../../data/constants.js";
-import { addDays } from "../../data/helpers.js";
 import { SERVICE_CATEGORIES, getTypeFromService, getVetServices } from "../../data/services.js";
+import { getAvailableSlotsForDay, getWorkingDays } from "../../utils/availability.js";
 import { createAppointment, isSupabaseConfigured } from "../../lib/db.js";
 import { mapAppointment } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 
-/* Emoji per ogni categoria */
 const CAT_EMOJI = { Visite: "🩺", Vaccini: "💉", Analisi: "🩸", Diagnostica: "📷", Chirurgia: "🏥", Altro: "📋" };
 
-export default function BookingFlow({ vet, onDone, onCancel }) {
+/**
+ * BookingFlow — step flow di prenotazione.
+ *
+ * Props:
+ *   vet                — oggetto veterinario (obbligatorio)
+ *   onDone             — callback al termine
+ *   onCancel           — callback annulla
+ *   preSelectedServiceId — serviceId preselezionato (via ServiceSearch o navigazione)
+ *
+ * Props opzionali per slot precompilato (da SlotCard o VetPublicProfile):
+ *   initialPetId       — petId preselezionato
+ *   initialServiceId   — serviceId preselezionato
+ *   initialDate        — data preselezionata (YYYY-MM-DD)
+ *   initialTime        — orario preselezionato (HH:MM)
+ *   initialType        — tipo preselezionato (clinic/home/video)
+ */
+export default function BookingFlow({
+  vet, onDone, onCancel,
+  preSelectedServiceId,
+  initialPetId,
+  initialServiceId,
+  initialDate,
+  initialTime,
+  initialType,
+}) {
   const { pets, appts, setAppts, notify } = useApp();
   const { user } = useAuthContext();
-  /* Ordine step: Animale → Prestazione → Orario → Conferma → Fatto */
-  const [step, setStep] = useState(1);
-  const [petId, setPetId] = useState(pets[0]?.id || "");
-  const [serviceId, setServiceId] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [notes, setNotes] = useState("");
 
-  /* Accordion: quale categoria è aperta */
+  const effectiveServiceId = initialServiceId || preSelectedServiceId || "";
+  const effectivePetId = initialPetId || pets[0]?.id || "";
+
+  // Se arrivano data+ora precompilate, partiamo dallo step di conferma (step 4)
+  // se mancano animale o servizio, da 1 o 2.
+  const deriveStartStep = () => {
+    if (initialDate && initialTime) {
+      if (!effectivePetId) return 1;
+      if (!effectiveServiceId) return 2;
+      return 4; // tutto precompilato → vai al riepilogo
+    }
+    return 1;
+  };
+
+  const [step, setStep] = useState(deriveStartStep);
+  const [petId, setPetId] = useState(effectivePetId);
+  const [serviceId, setServiceId] = useState(effectiveServiceId);
+  const [date, setDate] = useState(initialDate || "");
+  const [time, setTime] = useState(initialTime || "");
+  const [notes, setNotes] = useState("");
   const [openCat, setOpenCat] = useState(null);
 
-  /* Servizi disponibili per questo vet (con prezzi personalizzati) */
   const vetServices = getVetServices(vet);
   const service = vetServices.find(s => s.id === serviceId);
-  const type = service ? getTypeFromService(serviceId) : "clinic";
+  const type = initialType || (service ? getTypeFromService(serviceId) : "clinic");
 
-  /* Filtra servizi compatibili con il vet (home/video) */
   const availableServices = vetServices.filter(s => {
     const sType = getTypeFromService(s.id);
     return vet.types.includes(sType);
   });
-
-  /* Categorie che hanno almeno un servizio disponibile */
   const availableCats = SERVICE_CATEGORIES.filter(c => availableServices.some(s => s.cat === c));
 
-  /* Giorni disponibili */
-  const allDays = Array.from({ length: 21 }, (_, i) => addDays(i + 1));
-  const days = allDays.filter(d => {
-    const dayOfWeek = new Date(d).getDay();
-    return !vet.workDays || vet.workDays.includes(dayOfWeek);
-  }).slice(0, 10);
-
-  const takenSlots = appts.filter(a => a.vetId === vet.id && a.date === date && a.status !== "cancelled").map(a => a.time);
-  const freeSlots = SLOT_TIMES.filter(t => !takenSlots.includes(t));
+  const days = getWorkingDays(vet);
+  const freeSlots = date ? getAvailableSlotsForDay(vet, appts, date) : [];
+  const takenSlots = SLOT_TIMES.filter(t => !freeSlots.includes(t));
 
   const confirm = async () => {
+    const isAutoConfirm = vet.autoConfirm || false;
+    const newStatus = isAutoConfirm ? "confirmed" : "pending";
+
     if (isSupabaseConfigured() && user) {
       const { data, error } = await createAppointment({
         petId, vetId: vet.id, ownerId: user.id,
@@ -62,7 +90,7 @@ export default function BookingFlow({ vet, onDone, onCancel }) {
     } else {
       setAppts([...appts, {
         id: "a" + Date.now(), petId, vetId: vet.id, date, time, type,
-        serviceId, status: "pending", ownerNotes: notes, vetNotes: "", proposal: null,
+        serviceId, status: newStatus, ownerNotes: notes, vetNotes: "", proposal: null,
         createdAt: new Date().toISOString(),
       }]);
     }
@@ -71,20 +99,35 @@ export default function BookingFlow({ vet, onDone, onCancel }) {
 
   const stepDot = (n, lbl) => (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-      <div style={{ width: 28, height: 28, borderRadius: radius.circle, background: step >= n ? TEAL : colors.borderLight, color: step >= n ? colors.white : colors.textMuted, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: fontSize.md }}>{n === 5 ? "✓" : n}</div>
+      <div style={{ width: 28, height: 28, borderRadius: radius.circle, background: step >= n ? TEAL : colors.borderLight, color: step >= n ? colors.white : colors.textMuted, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: fontSize.md }}>
+        {n === 5 ? "✓" : n}
+      </div>
       <div style={{ fontSize: fontSize.xs, marginTop: 4, color: step >= n ? TEAL : colors.textMuted }}>{lbl}</div>
     </div>
   );
 
+  const slotWasPreselected = !!initialDate && !!initialTime;
+
   return (
     <>
       {step < 5 && <Btn small variant="light" onClick={onCancel}>← Annulla</Btn>}
-      <h2 style={{ margin: "14px 0 4px" }}>{step === 5 ? "Prenotazione inviata! ✅" : `Prenota con ${vet.name}`}</h2>
+      <h2 style={{ margin: "14px 0 4px" }}>
+        {step === 5 ? (vet.autoConfirm ? "Prenotazione confermata! ✅" : "Richiesta inviata! ✅") : `Prenota con ${vet.name}`}
+      </h2>
+
+      {/* Riepilogo slot se preselezionato */}
+      {slotWasPreselected && step < 5 && (
+        <div style={{ background: colors.bgTealSel, borderRadius: radius.lg, padding: "10px 14px", marginBottom: 12, fontSize: fontSize.base }}>
+          <b style={{ color: TEAL }}>📅 Slot selezionato:</b> {date} ore {time}
+          {service && <span> · {service.emoji} {service.name} · €{service.price}</span>}
+        </div>
+      )}
+
       <div style={{ display: "flex", margin: "14px 0 20px" }}>
         {stepDot(1, "Animale")}{stepDot(2, "Prestazione")}{stepDot(3, "Orario")}{stepDot(4, "Conferma")}{stepDot(5, "Fatto")}
       </div>
 
-      {/* Step 1: Scelta animale (prima!) */}
+      {/* Step 1: Animale */}
       {step === 1 && (
         <Card>
           <b>Per quale animale vuoi prenotare?</b>
@@ -99,48 +142,33 @@ export default function BookingFlow({ vet, onDone, onCancel }) {
         </Card>
       )}
 
-      {/* Step 2: Scelta prestazione — stile Treatwell con accordion */}
+      {/* Step 2: Prestazione */}
       {step === 2 && (
         <Card>
           <b>Scegli la prestazione</b>
           <div style={{ fontSize: fontSize.md, color: colors.textMuted, marginTop: 4, marginBottom: 12 }}>
             Clicca su una categoria per vedere i servizi disponibili
           </div>
-
           <div style={{ display: "grid", gap: 6 }}>
             {availableCats.map(cat => {
               const catServices = availableServices.filter(s => s.cat === cat);
               const isOpen = openCat === cat;
-
               return (
                 <div key={cat} style={{ borderRadius: radius.lg, border: `1px solid ${colors.borderLight}`, overflow: "hidden" }}>
-                  {/* Header categoria */}
-                  <button onClick={() => setOpenCat(isOpen ? null : cat)} style={{
-                    width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "14px 14px", background: isOpen ? colors.bgTealSel : colors.white,
-                    border: "none", cursor: "pointer", fontFamily: "inherit",
-                  }}>
+                  <button onClick={() => setOpenCat(isOpen ? null : cat)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 14px", background: isOpen ? colors.bgTealSel : colors.white, border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                     <span style={{ fontWeight: 700, fontSize: fontSize.xl, display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 22 }}>{CAT_EMOJI[cat]}</span>
                       {cat}
                       <span style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 400 }}>({catServices.length})</span>
                     </span>
-                    <span style={{ fontSize: 14, color: isOpen ? TEAL : colors.textMuted, transition: "transform 0.2s", transform: isOpen ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
+                    <span style={{ fontSize: 14, color: isOpen ? TEAL : colors.textMuted, transform: isOpen ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
                   </button>
-
-                  {/* Lista servizi della categoria */}
                   {isOpen && (
                     <div style={{ borderTop: `1px solid ${colors.divider}` }}>
                       {catServices.map(s => {
                         const selected = serviceId === s.id;
                         return (
-                          <div key={s.id} onClick={() => setServiceId(s.id)} style={{
-                            padding: "12px 14px", cursor: "pointer",
-                            background: selected ? colors.bgTealSel : colors.white,
-                            borderBottom: `1px solid ${colors.divider}`,
-                            borderLeft: selected ? `3px solid ${TEAL}` : "3px solid transparent",
-                            display: "flex", alignItems: "center", gap: 12,
-                          }}>
+                          <div key={s.id} onClick={() => setServiceId(s.id)} style={{ padding: "12px 14px", cursor: "pointer", background: selected ? colors.bgTealSel : colors.white, borderBottom: `1px solid ${colors.divider}`, borderLeft: selected ? `3px solid ${TEAL}` : "3px solid transparent", display: "flex", alignItems: "center", gap: 12 }}>
                             <span style={{ fontSize: 24, flexShrink: 0 }}>{s.emoji}</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 600, fontSize: fontSize.base }}>{s.name}</div>
@@ -160,8 +188,6 @@ export default function BookingFlow({ vet, onDone, onCancel }) {
               );
             })}
           </div>
-
-          {/* Riepilogo selezione corrente */}
           {service && (
             <div style={{ marginTop: 12, padding: "10px 14px", background: colors.bgTealSel, borderRadius: radius.lg, display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 20 }}>{service.emoji}</span>
@@ -172,15 +198,16 @@ export default function BookingFlow({ vet, onDone, onCancel }) {
               <b style={{ color: ORANGE }}>€{service.price}</b>
             </div>
           )}
-
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             <Btn variant="light" onClick={() => setStep(1)} style={{ flex: 1 }}>← Indietro</Btn>
-            <Btn onClick={() => setStep(3)} style={{ flex: 2 }} disabled={!serviceId}>Continua →</Btn>
+            <Btn onClick={() => setStep(slotWasPreselected ? 4 : 3)} style={{ flex: 2 }} disabled={!serviceId}>
+              {slotWasPreselected ? "Vai al riepilogo →" : "Continua →"}
+            </Btn>
           </div>
         </Card>
       )}
 
-      {/* Step 3: Data e ora */}
+      {/* Step 3: Data e ora (solo se slot non preselezionato) */}
       {step === 3 && (
         <Card>
           <b>Scegli il giorno</b>
@@ -199,10 +226,18 @@ export default function BookingFlow({ vet, onDone, onCancel }) {
             <>
               <b style={{ display: "block", marginTop: 10 }}>Orari disponibili</b>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-                {freeSlots.map(t => (
-                  <div key={t} onClick={() => setTime(t)} style={{ padding: "10px 14px", borderRadius: radius.md, cursor: "pointer", border: `2px solid ${time === t ? TEAL : colors.borderLight}`, background: time === t ? TEAL : colors.white, color: time === t ? colors.white : "#333", fontWeight: 600, fontSize: fontSize.base, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>{t}</div>
-                ))}
+                {SLOT_TIMES.map(t => {
+                  const taken = takenSlots.includes(t);
+                  return (
+                    <div key={t} onClick={() => !taken && setTime(t)} style={{ padding: "10px 14px", borderRadius: radius.md, cursor: taken ? "not-allowed" : "pointer", border: `2px solid ${time === t ? TEAL : colors.borderLight}`, background: time === t ? TEAL : taken ? colors.bgLight : colors.white, color: time === t ? colors.white : taken ? colors.textMuted : "#333", fontWeight: 600, fontSize: fontSize.base, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", opacity: taken ? 0.5 : 1, textDecoration: taken ? "line-through" : "none" }}>{t}</div>
+                  );
+                })}
               </div>
+              {freeSlots.length === 0 && (
+                <div style={{ color: colors.dangerFg, fontSize: fontSize.md, marginTop: 8, background: colors.dangerBg, padding: "8px 12px", borderRadius: radius.md }}>
+                  ⚠️ Tutti gli orari sono occupati per questa data. Prova un altro giorno.
+                </div>
+              )}
             </>
           )}
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
@@ -212,71 +247,90 @@ export default function BookingFlow({ vet, onDone, onCancel }) {
         </Card>
       )}
 
-      {/* Step 4: Riepilogo e conferma */}
+      {/* Step 4: Riepilogo */}
       {step === 4 && (
         <Card>
           <b>Riepilogo</b>
-          {(() => { const p = pets.find(x => x.id === petId); return (
-            <div style={{ background: colors.bgLighter, borderRadius: radius.lg, padding: 14, margin: "10px 0", fontSize: fontSize.base, lineHeight: 1.8 }}>
-              🐾 <b>{p?.name}</b> ({p?.species})<br/>
-              👩‍⚕️ {vet.name} — {vet.clinic}<br/>
-              📍 {vet.address}<br/>
-              {service?.emoji} <b>{service?.name}</b> · ~{service?.duration} min<br/>
-              📅 <b>{date}</b> ore <b>{time}</b><br/>
-              💶 <b style={{ color: ORANGE }}>€{service?.price}</b> (prezzo indicativo — confermato dal veterinario)
-            </div>
-          ); })()}
+          {(() => {
+            const p = pets.find(x => x.id === petId);
+            return (
+              <div style={{ background: colors.bgLighter, borderRadius: radius.lg, padding: 14, margin: "10px 0", fontSize: fontSize.base, lineHeight: 1.8 }}>
+                🐾 <b>{p?.name}</b> ({p?.species})<br />
+                👩‍⚕️ {vet.name} — {vet.clinic}<br />
+                📍 {vet.address}<br />
+                {service?.emoji} <b>{service?.name}</b> · ~{service?.duration} min<br />
+                📅 <b>{date}</b> ore <b>{time}</b><br />
+                💶 <b style={{ color: ORANGE }}>€{service?.price}</b> (prezzo indicativo — confermato dal veterinario)
+              </div>
+            );
+          })()}
 
-          {/* Disclaimer video-consulto — HIGH fix */}
           {type === "video" && (
             <div style={{ background: "#FFF3CD", borderRadius: radius.lg, padding: "10px 14px", margin: "10px 0", fontSize: fontSize.md, color: "#856404", lineHeight: 1.6 }}>
-              <b>⚠️ Video-consulto:</b> La consulenza a distanza non sostituisce una visita fisica quando clinicamente necessaria. Il veterinario valuterà se il video-consulto è appropriato per il tuo caso e potrà richiedere una visita in presenza. In caso di emergenza, contatta un pronto soccorso veterinario.
+              <b>⚠️ Video-consulto:</b> La consulenza a distanza non sostituisce una visita fisica quando clinicamente necessaria. Il veterinario valuterà se il video-consulto è appropriato per il tuo caso.
             </div>
           )}
 
-          {/* Info cancellazione/no-show — HIGH fix (placeholder policy) */}
           <div style={{ fontSize: fontSize.sm, color: colors.textMuted, background: colors.bgLighter, borderRadius: radius.md, padding: "8px 12px", margin: "10px 0", lineHeight: 1.6 }}>
-            ℹ️ <b>Cancellazione:</b> policy di cancellazione e no-show da definire prima del go-live. [TODO — policy cancellazione]
+            ℹ️ <b>Cancellazione:</b> gratuita fino a <b>{vet.cancellationHours || 24}h</b> prima della visita.
           </div>
 
-          <label htmlFor="booking-notes" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600 }}>Note per il veterinario</label>
-          {/* Avviso campi liberi — MEDIUM fix */}
-          <p style={{ fontSize: fontSize.xs, color: colors.textMuted, margin: "4px 0 0" }}>
-            Inserisci solo informazioni utili per la visita del tuo animale. Non inserire dati sanitari tuoi o di altre persone se non strettamente necessari.
-          </p>
-          <textarea id="booking-notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Note per il veterinario (facoltativo)…" rows={3}
-            style={{ ...inputStyle, borderRadius: radius.lg, marginTop: 6 }} maxLength={1000} />
+          {vet.autoConfirm && (
+            <div style={{ background: "#D1FAE5", borderRadius: radius.md, padding: "8px 12px", margin: "10px 0", fontSize: fontSize.md, color: "#065F46", fontWeight: 600 }}>
+              ✓ Questo veterinario conferma automaticamente — riceverai conferma immediata.
+            </div>
+          )}
 
-          {/* Informativa trattamento dati prenotazione */}
+          <label htmlFor="booking-notes" style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600 }}>Note per il veterinario</label>
+          <p style={{ fontSize: fontSize.xs, color: colors.textMuted, margin: "4px 0 0" }}>
+            Inserisci solo informazioni utili per la visita del tuo animale.
+          </p>
+          <textarea id="booking-notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Note per il veterinario (facoltativo)…" rows={3} style={{ ...inputStyle, borderRadius: radius.lg, marginTop: 6 }} maxLength={1000} />
+
           <p style={{ fontSize: fontSize.xs, color: colors.textMuted, marginTop: 8, lineHeight: 1.5 }}>
-            Confermando la prenotazione accetti le <b>Condizioni d'uso</b>. I tuoi dati saranno condivisi con il veterinario prenotato al solo scopo di gestire la visita, come descritto nella <b>Privacy Policy</b>.
+            Confermando accetti le <b>Condizioni d'uso</b>. I dati saranno condivisi con il veterinario solo per gestire la visita.
           </p>
 
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <Btn variant="light" onClick={() => setStep(3)} style={{ flex: 1 }}>← Indietro</Btn>
+            <Btn variant="light" onClick={() => setStep(slotWasPreselected && serviceId ? 2 : 3)} style={{ flex: 1 }}>← Indietro</Btn>
             <Btn variant="accent" onClick={confirm} style={{ flex: 2 }}>Conferma prenotazione ✓</Btn>
           </div>
         </Card>
       )}
 
-      {/* Step 5: Conferma avvenuta */}
+      {/* Step 5: Successo */}
       {step === 5 && (
         <Card style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 56, marginBottom: 8 }}>🎉</div>
-          <h3 style={{ margin: "0 0 8px", color: colors.textDark }}>Prenotazione inviata!</h3>
-          {(() => { const p = pets.find(x => x.id === petId); return (
-            <div style={{ background: colors.bgLighter, borderRadius: radius.lg, padding: 14, margin: "10px 0", fontSize: fontSize.base, lineHeight: 1.8, textAlign: "left" }}>
-              🐾 <b>{p?.name}</b><br/>
-              👩‍⚕️ <b>{vet.name}</b><br/>
-              {service?.emoji} {service?.name}<br/>
-              📅 <b>{date}</b> ore <b>{time}</b><br/>
-              💶 <b style={{ color: ORANGE }}>€{service?.price}</b>
+          <div style={{ fontSize: 56, marginBottom: 8 }}>{vet.autoConfirm ? "✅" : "🎉"}</div>
+          <h3 style={{ margin: "0 0 8px", color: colors.textDark }}>
+            {vet.autoConfirm ? "Prenotazione confermata!" : "Richiesta inviata!"}
+          </h3>
+          {(() => {
+            const p = pets.find(x => x.id === petId);
+            return (
+              <div style={{ background: colors.bgLighter, borderRadius: radius.lg, padding: 14, margin: "10px 0", fontSize: fontSize.base, lineHeight: 1.8, textAlign: "left" }}>
+                🐾 <b>{p?.name}</b><br />
+                👩‍⚕️ <b>{vet.name}</b><br />
+                {service?.emoji} {service?.name}<br />
+                📅 <b>{date}</b> ore <b>{time}</b><br />
+                💶 <b style={{ color: ORANGE }}>€{service?.price}</b>
+              </div>
+            );
+          })()}
+
+          {vet.autoConfirm ? (
+            <div style={{ background: "#D1FAE5", borderRadius: radius.lg, padding: "12px 14px", margin: "10px 0", fontSize: fontSize.base, lineHeight: 1.6, textAlign: "left", color: "#065F46" }}>
+              ✅ <b>Prenotazione confermata.</b> Segnati la data!<br />
+              <span style={{ fontWeight: 400 }}>📲 Riceverai un promemoria prima della visita.</span>
             </div>
-          ); })()}
-          <div style={{ background: colors.bgOrangeLight, borderRadius: radius.lg, padding: "12px 14px", margin: "10px 0", fontSize: fontSize.base, lineHeight: 1.6, textAlign: "left", color: colors.textMedium }}>
-            ⏳ <b>Cosa succede ora?</b><br/>
-            Il veterinario riceverà la tua richiesta e potrà <b>confermarla</b> o <b>proporti un'alternativa</b>. Controlla la sezione "Visite" per gli aggiornamenti!
-          </div>
+          ) : (
+            <div style={{ background: colors.bgOrangeLight, borderRadius: radius.lg, padding: "12px 14px", margin: "10px 0", fontSize: fontSize.base, lineHeight: 1.6, textAlign: "left", color: colors.textMedium }}>
+              ⏳ <b>Richiesta inviata.</b><br />
+              Il veterinario la confermerà o proporrà un'alternativa. Controlla "Visite" per gli aggiornamenti.<br />
+              <span style={{ fontSize: fontSize.sm }}>📲 Riceverai un promemoria prima della visita.</span>
+            </div>
+          )}
+
           <Btn variant="accent" onClick={onDone} style={{ marginTop: 14, width: "100%" }}>Vai alle mie visite →</Btn>
         </Card>
       )}

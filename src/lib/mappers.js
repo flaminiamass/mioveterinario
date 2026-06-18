@@ -43,6 +43,9 @@ export function mapVet(row, vetServicesRows = []) {
     cf: row.cf || "",
     albo: row.albo || "",
     regime: row.regime || "ordinario",
+    zone: row.zone || "",
+    languages: row.languages || ["Italiano"],
+    cancellationHours: row.cancellation_hours != null ? Number(row.cancellation_hours) : 24,
     services: vetServicesRows.map(mapVetService),
   };
 }
@@ -109,6 +112,7 @@ export function mapAppointment(row) {
     vetNotes: row.vet_notes || "",
     rejectReason: row.reject_reason || "",
     proposal: row.proposal || null,      // JSONB → oggetto automatico
+    ownerCancelReason: row.owner_cancel_reason || "",
   };
 }
 
@@ -185,6 +189,22 @@ export function mapVaccine(row) {
     date: row.date || "",
     due: row.due || null,
     vet: row.vet_name || "",             // DB: vet_name → componenti: vet
+  };
+}
+
+/**
+ * Mappa una notifica dal formato database al formato componente.
+ */
+export function mapNotification(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    type: row.type || "",
+    title: row.title || "",
+    message: row.message || "",
+    data: row.data || {},
+    read: !!row.read,
+    createdAt: row.created_at || "",
   };
 }
 

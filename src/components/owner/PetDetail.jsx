@@ -50,10 +50,19 @@ export default function PetDetail({ pet, onBack }) {
     }
   };
 
+  /* Cancella animale */
+  const [showDeletePet, setShowDeletePet] = useState(false);
+  const activeApptCount = petAppts.filter(a => ["pending", "confirmed"].includes(a.status)).length;
+
   /* Aggiungi vaccino */
   const [addingVax, setAddingVax] = useState(false);
   const [vaxForm, setVaxForm] = useState({ name: "", date: "", due: "", vet: "" });
   const vaxInp = { ...inputStyle, marginTop: 6 };
+
+  /* Modifica/cancella vaccino */
+  const [editingVaxId, setEditingVaxId] = useState(null);
+  const [editVaxForm, setEditVaxForm] = useState({ name: "", date: "", due: "", vet: "" });
+  const [deleteVaxId, setDeleteVaxId] = useState(null);
 
   return (
     <>
@@ -71,7 +80,10 @@ export default function PetDetail({ pet, onBack }) {
               {pet.chip && <span>📟 chip …{String(pet.chip).slice(-5)}</span>}
               {pet.sex && <span>{pet.sex === "M" ? "♂️" : "♀️"} {pet.sex === "M" ? "Maschio" : "Femmina"}</span>}
             </div>
-            <Btn small variant="ghost" style={{ marginTop: 12 }} onClick={() => { savedForm.current = { name: pet.name, breed: pet.breed, weight: pet.weight || "", chip: pet.chip || "", sex: pet.sex || "" }; setForm({ ...savedForm.current }); setEditing(true); }}>✏️ Modifica</Btn>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
+              <Btn small variant="ghost" onClick={() => { savedForm.current = { name: pet.name, breed: pet.breed, weight: pet.weight || "", chip: pet.chip || "", sex: pet.sex || "" }; setForm({ ...savedForm.current }); setEditing(true); }}>✏️ Modifica</Btn>
+              <Btn small variant="danger" onClick={() => setShowDeletePet(true)}>🗑️ Elimina</Btn>
+            </div>
           </>
         ) : (
           <div style={{ textAlign: "left", marginTop: 12 }}>
@@ -137,13 +149,50 @@ export default function PetDetail({ pet, onBack }) {
       )}
 
       {petVax.length ? petVax.map((v, i) => (
-        <Card key={i} style={{ marginBottom: 8 }}>
-          <b style={{ fontSize: fontSize.base }}>{v.name}</b>
-          <div style={{ fontSize: fontSize.md, color: colors.textSecondary }}>
-            Fatto: {v.date}
-            {v.due && <> · Scadenza: <b style={{ color: new Date(v.due) < new Date(fmtDate(new Date())) ? colors.danger : colors.success }}>{v.due}</b></>}
-            {v.vet && <> · {v.vet}</>}
-          </div>
+        <Card key={v.id || i} style={{ marginBottom: 8 }}>
+          {editingVaxId === (v.id || i) ? (
+            /* Form modifica vaccino inline */
+            <div>
+              <label style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600 }}>Nome vaccino *</label>
+              <input style={vaxInp} value={editVaxForm.name} onChange={e => setEditVaxForm({ ...editVaxForm, name: e.target.value })} />
+              <label style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Data somministrazione *</label>
+              <input style={vaxInp} type="date" value={editVaxForm.date} onChange={e => setEditVaxForm({ ...editVaxForm, date: e.target.value })} />
+              <label style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Scadenza richiamo</label>
+              <input style={vaxInp} type="date" value={editVaxForm.due} onChange={e => setEditVaxForm({ ...editVaxForm, due: e.target.value })} />
+              <label style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}>Veterinario</label>
+              <input style={vaxInp} value={editVaxForm.vet} onChange={e => setEditVaxForm({ ...editVaxForm, vet: e.target.value })} />
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <Btn small variant="light" onClick={() => setEditingVaxId(null)}>Annulla</Btn>
+                <Btn small disabled={!editVaxForm.name || !editVaxForm.date} onClick={async () => {
+                  const vaxId = v.id || i;
+                  setVaccines(vaccines.map(vx => (vx.id || vaccines.indexOf(vx)) === vaxId ? { ...vx, name: editVaxForm.name, date: editVaxForm.date, due: editVaxForm.due || null, vet: editVaxForm.vet } : vx));
+                  setEditingVaxId(null);
+                  notify("✏️ Vaccino aggiornato!");
+                  if (db.isSupabaseConfigured() && v.id) {
+                    const { error } = await db.updateVaccine(v.id, { name: editVaxForm.name, date: editVaxForm.date, due: editVaxForm.due || null, vetName: editVaxForm.vet });
+                    if (error) notify("❌ Errore: " + error.message);
+                  }
+                }}>Salva ✓</Btn>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <b style={{ fontSize: fontSize.base }}>{v.name}</b>
+                  <div style={{ fontSize: fontSize.md, color: colors.textSecondary }}>
+                    Fatto: {v.date}
+                    {v.due && <> · Scadenza: <b style={{ color: new Date(v.due) < new Date(fmtDate(new Date())) ? colors.danger : colors.success }}>{v.due}</b></>}
+                    {v.vet && <> · {v.vet}</>}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  <Btn small variant="ghost" onClick={() => { setEditingVaxId(v.id || i); setEditVaxForm({ name: v.name, date: v.date, due: v.due || "", vet: v.vet || "" }); }}>✏️</Btn>
+                  <Btn small variant="danger" onClick={() => setDeleteVaxId(v.id || i)}>🗑️</Btn>
+                </div>
+              </div>
+            </>
+          )}
         </Card>
       )) : <Card><Empty icon="💉" text="Nessun vaccino registrato" /></Card>}
 
@@ -163,6 +212,46 @@ export default function PetDetail({ pet, onBack }) {
           </Card>
         );
       }) : <Card><Empty icon="📋" text="Nessuna visita" /></Card>}
+
+      {/* Dialog conferma eliminazione animale */}
+      <ConfirmDialog
+        open={showDeletePet}
+        title="Eliminare questo animale?"
+        message={activeApptCount > 0
+          ? `${pet.name} ha ${activeApptCount} visita/e attiva/e. Eliminando l'animale le visite rimarranno ma non saranno più collegate. Vuoi procedere?`
+          : `Vuoi davvero eliminare ${pet.name}? L'azione non può essere annullata.`}
+        confirmLabel="Sì, elimina"
+        onCancel={() => setShowDeletePet(false)}
+        onConfirm={async () => {
+          setPets(pets.filter(p => p.id !== pet.id));
+          setShowDeletePet(false);
+          notify("🗑️ Animale eliminato");
+          onBack();
+          if (db.isSupabaseConfigured()) {
+            const { error } = await db.deletePet(pet.id);
+            if (error) notify("❌ Errore: " + error.message);
+          }
+        }}
+      />
+
+      {/* Dialog conferma eliminazione vaccino */}
+      <ConfirmDialog
+        open={!!deleteVaxId}
+        title="Eliminare questo vaccino?"
+        message="Il record del vaccino verrà rimosso dal libretto."
+        confirmLabel="Elimina"
+        onCancel={() => setDeleteVaxId(null)}
+        onConfirm={async () => {
+          const vaxId = deleteVaxId;
+          setVaccines(vaccines.filter(vx => (vx.id || vaccines.indexOf(vx)) !== vaxId));
+          notify("🗑️ Vaccino eliminato");
+          if (db.isSupabaseConfigured() && typeof vaxId === "string") {
+            const { error } = await db.deleteVaccine(vaxId);
+            if (error) notify("❌ Errore: " + error.message);
+          }
+          setDeleteVaxId(null);
+        }}
+      />
 
       {/* Dialog per modifiche non salvate */}
       <ConfirmDialog

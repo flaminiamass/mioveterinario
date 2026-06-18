@@ -9,6 +9,7 @@ import Badge from "../ui/Badge.jsx";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
+import VetStats from "./VetStats.jsx";
 
 const DAY_FULL = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 const DAY_SHORT = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
@@ -24,6 +25,7 @@ export default function VetAgenda({ vetId }) {
 
   return (
     <>
+      <VetStats vetId={vetId} />
       <SectionTitle right={
         <div style={{ display: "flex", gap: 6 }}>
           {pendingCount > 0 && <span style={{ background: "#FEF3C7", color: "#92400E", padding: "4px 12px", borderRadius: radius.xl, fontSize: fontSize.md, fontWeight: 700 }}>🔔 {pendingCount} da confermare</span>}

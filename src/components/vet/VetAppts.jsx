@@ -23,7 +23,8 @@ const FILTER_OPTIONS = [
 ];
 
 export default function VetAppts({ vetId }) {
-  const { appts, setAppts, pets, referti, invoices, ownerProfile, notify } = useApp();
+  const { appts, setAppts, pets, vets, referti, invoices, ownerProfile, notify } = useApp();
+  const vet = vets.find(v => v.id === vetId);
   const [filter, setFilter] = useState("all");
   const [refertoFor, setRefertoFor] = useState(null);
   const [invoiceFor, setInvoiceFor] = useState(null);
@@ -40,11 +41,34 @@ export default function VetAppts({ vetId }) {
 
   const list = appts.filter(a => a.vetId === vetId && (filter === "all" || a.status === filter)).sort((a, b) => b.date.localeCompare(a.date));
   const setStatus = async (id, status) => {
+    /* Controllo conflitto orario quando si conferma */
+    if (status === "confirmed") {
+      const appt = appts.find(a => a.id === id);
+      const conflict = appts.find(a =>
+        a.id !== id && a.vetId === vetId && a.date === appt.date && a.time === appt.time && a.status === "confirmed"
+      );
+      if (conflict) {
+        const cPet = pets.find(p => p.id === conflict.petId);
+        notify(`⚠️ Conflitto: hai già una visita alle ${appt.time} del ${appt.date} con ${cPet?.name || "un paziente"}`);
+        return;
+      }
+    }
+    const appt = appts.find(a => a.id === id) || {};
+    const pet = pets.find(p => p.id === appt.petId);
     setAppts(appts.map(a => a.id === id ? { ...a, status } : a));
     notify(`Stato aggiornato: ${STATUS_META[status].label}`);
     if (db.isSupabaseConfigured()) {
       const { error } = await db.updateAppointmentStatus(id, status);
       if (error) notify("❌ Errore salvataggio: " + error.message);
+      /* Invia notifica al proprietario */
+      if (appt.ownerId) {
+        const vetName = vet?.name || "Il veterinario";
+        if (status === "confirmed") {
+          db.createNotification({ userId: appt.ownerId, type: "appt_confirmed", title: `✅ Visita confermata`, message: `${vetName} ha confermato la visita di ${pet?.name || "il tuo animale"} del ${appt.date} alle ${appt.time}` });
+        } else if (status === "completed") {
+          db.createNotification({ userId: appt.ownerId, type: "appt_completed", title: `✓ Visita completata`, message: `La visita di ${pet?.name || "il tuo animale"} con ${vetName} è completata. Controlla i referti!` });
+        }
+      }
     }
   };
 
@@ -73,12 +97,17 @@ export default function VetAppts({ vetId }) {
   /* Invia proposta alternativa dal vet */
   const sendProposal = async (apptId) => {
     const proposal = { from: "vet", date: propDate, time: propTime, message: propMsg || "" };
+    const appt = appts.find(a => a.id === apptId);
     setAppts(appts.map(x => x.id === apptId ? { ...x, proposal } : x));
     setProposingId(null);
     notify("📅 Proposta alternativa inviata al proprietario!");
     if (db.isSupabaseConfigured()) {
       const { error } = await db.sendProposal(apptId, proposal);
       if (error) notify("❌ Errore salvataggio: " + error.message);
+      /* Notifica al proprietario */
+      if (appt?.ownerId) {
+        db.createNotification({ userId: appt.ownerId, type: "appt_proposal", title: `📅 Proposta nuovo orario`, message: `${vet?.name || "Il veterinario"} propone: ${propDate} alle ${propTime}${propMsg ? ` — "${propMsg}"` : ""}` });
+      }
     }
   };
 
@@ -108,6 +137,7 @@ export default function VetAppts({ vetId }) {
                   {a.ownerNotes && <div style={{ fontSize: fontSize.md, marginTop: 4 }}>📝 <i>{a.ownerNotes}</i></div>}
                   {a.vetNotes && <div style={{ fontSize: fontSize.md, color: colors.teal, marginTop: 4, background: colors.bgTealSel, padding: "4px 8px", borderRadius: radius.sm }}>👩‍⚕️ Note: {a.vetNotes}</div>}
                   {a.rejectReason && a.status === "cancelled" && <div style={{ fontSize: fontSize.md, color: colors.dangerFg, marginTop: 4, background: colors.dangerBg, padding: "4px 8px", borderRadius: radius.sm }}>❌ Motivo: {a.rejectReason}</div>}
+                  {a.ownerCancelReason && a.status === "cancelled" && <div style={{ fontSize: fontSize.md, color: colors.textMedium, marginTop: 4, background: colors.bgLight, padding: "4px 8px", borderRadius: radius.sm }}>🙍 Motivo cancellazione cliente: {a.ownerCancelReason}</div>}
                 </div>
                 <Badge status={a.status} />
               </div>
@@ -201,11 +231,17 @@ export default function VetAppts({ vetId }) {
         open={!!rejectingId}
         onCancel={() => setRejectingId(null)}
         onReject={async (reason) => {
+          const appt = appts.find(a => a.id === rejectingId);
+          const pet = pets.find(p => p.id === appt?.petId);
           setAppts(appts.map(a => a.id === rejectingId ? { ...a, status: "cancelled", rejectReason: reason || "" } : a));
           notify("Appuntamento rifiutato.");
           if (db.isSupabaseConfigured()) {
             const { error } = await db.updateAppointmentStatus(rejectingId, "cancelled", { rejectReason: reason || "" });
             if (error) notify("❌ Errore salvataggio: " + error.message);
+            /* Notifica al proprietario */
+            if (appt?.ownerId) {
+              db.createNotification({ userId: appt.ownerId, type: "appt_cancelled", title: `❌ Visita rifiutata`, message: `${vet?.name || "Il veterinario"} ha rifiutato la visita di ${pet?.name || "il tuo animale"} del ${appt.date}${reason ? `. Motivo: ${reason}` : ""}` });
+            }
           }
           setRejectingId(null);
         }}

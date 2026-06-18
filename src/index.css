@@ -30,12 +30,13 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Nascondi la barra di scorrimento orizzontale sui selettori giorni,
-   ma permetti comunque lo scroll con il dito */
-.date-scroll::-webkit-scrollbar {
+/* Nascondi la barra di scorrimento orizzontale — usata su chip row e date picker */
+.date-scroll::-webkit-scrollbar,
+.chip-scroll::-webkit-scrollbar {
   display: none;
 }
-.date-scroll {
+.date-scroll,
+.chip-scroll {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

@@ -4,6 +4,7 @@ import { TEAL, ORANGE, colors, fontSize, radius, searchInputStyle } from "../../
 import { printInvoice } from "../../utils/invoicePrint.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
+import Empty from "../ui/Empty.jsx";
 
 export default function OwnerDocs() {
   const { referti, invoices, pets, vets, ownerProfile } = useApp();
@@ -31,11 +32,14 @@ export default function OwnerDocs() {
           <div style={{ background: "#E3F2FD", borderRadius: 8, padding: "10px 14px", fontSize: fontSize.md, color: "#1565C0", lineHeight: 1.6 }}>
             <b>ℹ️ I referti sono documenti clinici</b> redatti e firmati dal veterinario, che ne è l'unico responsabile. Non modificare o condividere il contenuto senza il consenso del professionista. Per farmaci soggetti a prescrizione fa fede la Ricetta Veterinaria Elettronica (REV) ufficiale.
           </div>
-          {referti.filter(r => {
-            const pet = pets.find(p => p.id === r.petId);
-            const vet = vets.find(v => v.id === r.vetId);
-            return matchQ([r.title, pet?.name, vet?.name, r.diagnosis].join(" "));
-          }).map(r => {
+          {(() => {
+            const filtered = referti.filter(r => {
+              const pet = pets.find(p => p.id === r.petId);
+              const vet = vets.find(v => v.id === r.vetId);
+              return matchQ([r.title, pet?.name, vet?.name, r.diagnosis].join(" "));
+            });
+            if (filtered.length === 0) return <Card><Empty icon="📄" text="Nessun referto ancora" sub="Appariranno qui dopo le visite dal veterinario" /></Card>;
+            return filtered.map(r => {
             const pet = pets.find(p => p.id === r.petId);
             const vet = vets.find(v => v.id === r.vetId);
             const isOpen = open === r.id;
@@ -56,7 +60,8 @@ export default function OwnerDocs() {
                 )}
               </Card>
             );
-          })}
+          });
+          })()}
         </div>
       )}
 
@@ -66,10 +71,13 @@ export default function OwnerDocs() {
           <div style={{ background: colors.bgOrangeLight, borderRadius: 8, padding: "10px 14px", fontSize: fontSize.md, color: colors.textMedium, lineHeight: 1.6 }}>
             <b>ℹ️ Le fatture</b> sono emesse dal veterinario/clinica che ha erogato la prestazione, che ne è il soggetto fiscalmente responsabile. Il documento generato da questa app è una bozza riepilogativa. Prima del go-live occorre integrare il flusso di fatturazione elettronica (SdI). [DA VALIDARE CON COMMERCIALISTA]
           </div>
-          {invoices.filter(f => {
-            const vet = vets.find(v => v.id === f.vetId);
-            return matchQ([vet?.name, ...f.items.map(i => i.desc)].join(" "));
-          }).map(f => {
+          {(() => {
+            const filtered = invoices.filter(f => {
+              const vet = vets.find(v => v.id === f.vetId);
+              return matchQ([vet?.name, ...f.items.map(i => i.desc)].join(" "));
+            });
+            if (filtered.length === 0) return <Card><Empty icon="🧾" text="Nessuna fattura" sub="Le fatture emesse dal veterinario appariranno qui" /></Card>;
+            return filtered.map(f => {
             const vet = vets.find(v => v.id === f.vetId);
             const displayTotal = f.total != null ? f.total : f.items.reduce((s, i) => s + i.qty * i.price, 0);
             const isOpen = open === f.id;
@@ -112,7 +120,8 @@ export default function OwnerDocs() {
                 )}
               </Card>
             );
-          })}
+          });
+          })()}
         </div>
       )}
     </>

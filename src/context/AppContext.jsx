@@ -14,8 +14,9 @@ import { supabase, isSupabaseConfigured } from "../lib/supabaseClient.js";
 import { useAuthContext } from "./AuthContext.jsx";
 import {
   mapVet, mapPet, mapAppointment, mapReferto,
-  mapInvoice, mapReview, mapVaccine, mapClient,
+  mapInvoice, mapReview, mapVaccine, mapClient, mapNotification,
 } from "../lib/mappers.js";
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../lib/db.js";
 
 const AppContext = createContext(null);
 
@@ -43,6 +44,7 @@ export function AppProvider({ children }) {
   const [reviews, setReviews]   = useState(supabaseActive ? [] : seedReviews);
   const [vaccines, setVaccines] = useState(supabaseActive ? [] : seedVaccines);
   const [clients, setClients]   = useState(supabaseActive ? [] : seedClients);
+  const [notifications, setNotifications] = useState([]);
   const [toast, setToast]       = useState(null);
 
   /* Profilo proprietario */
@@ -188,6 +190,10 @@ export function AppProvider({ children }) {
       .order("date", { ascending: false });
 
     setReviews((reviewsData || []).map(mapReview));
+
+    /* 9. Carica le notifiche */
+    const { data: notifsData } = await getNotifications(user.id);
+    setNotifications((notifsData || []).map(mapNotification));
   }
 
   /* ── Carica dati per il VETERINARIO ── */
@@ -303,6 +309,10 @@ export function AppProvider({ children }) {
     } else {
       setVaccines([]);
     }
+
+    /* 9. Carica le notifiche */
+    const { data: notifsData } = await getNotifications(user.id);
+    setNotifications((notifsData || []).map(mapNotification));
   }
 
   /* ── Attiva il caricamento quando l'utente è loggato ── */
@@ -310,12 +320,35 @@ export function AppProvider({ children }) {
     loadData();
   }, [loadData]);
 
+  /* ── Polling automatico ogni 30 secondi — aggiorna dati e notifiche ── */
+  useEffect(() => {
+    if (!supabaseActive || !user || !profile) return;
+    const interval = setInterval(() => {
+      loadData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [supabaseActive, user?.id, profile?.role, loadData]);
+
+  /* ── Helper notifiche ── */
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markRead = async (id) => {
+    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+    if (supabaseActive) await markNotificationRead(id);
+  };
+
+  const markAllRead = async () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    if (supabaseActive && user) await markAllNotificationsRead(user.id);
+  };
+
   return (
     <AppContext.Provider value={{
       role, setRole, vets, setVets, pets, setPets, appts, setAppts,
       referti, setReferti, invoices, setInvoices, reviews, setReviews,
       vaccines, setVaccines, clients, setClients, toast, notify, vetId, setVetId,
       ownerProfile, setOwnerProfile, dataLoading,
+      notifications, setNotifications, unreadCount, markRead, markAllRead,
     }}>
       {children}
     </AppContext.Provider>

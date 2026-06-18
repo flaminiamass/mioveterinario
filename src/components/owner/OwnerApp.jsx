@@ -4,59 +4,164 @@ import { space } from "../../styles/tokens.js";
 import Header from "../layout/Header.jsx";
 import BottomNav from "../layout/BottomNav.jsx";
 import OwnerHome from "./OwnerHome.jsx";
-import SearchVets from "./SearchVets.jsx";
+import BookingSearch from "./BookingSearch.jsx";
+import VetsDirectory from "./VetsDirectory.jsx";
 import VetPublicProfile from "./VetPublicProfile.jsx";
 import BookingFlow from "./BookingFlow.jsx";
 import MyPets from "./MyPets.jsx";
 import PetDetail from "./PetDetail.jsx";
 import OwnerAppts from "./OwnerAppts.jsx";
 import ReviewForm from "./ReviewForm.jsx";
-import OwnerDocs from "./OwnerDocs.jsx";
+// OwnerDocs non è nel bottom nav principale (accessible da profilo/visite)
 import OwnerProfile from "./OwnerProfile.jsx";
+import NotificationPanel from "../layout/NotificationPanel.jsx";
 import LegalFooter from "../legal/LegalFooter.jsx";
 
 export default function OwnerApp({ onLogout, onNav }) {
-  const { ownerProfile } = useApp();
+  const { ownerProfile, appts, notifications, unreadCount, markRead, markAllRead } = useApp();
+  const proposalCount = appts.filter(a => a.proposal && a.proposal.from === "vet").length;
+
+  // Tab principali: Home · Prenota · Veterinari · Visite · Animali
   const [tab, setTab] = useState("home");
+
+  // Overlay/flow state
   const [bookingVet, setBookingVet] = useState(null);
+  const [preSelectedServiceId, setPreSelectedServiceId] = useState(null);
+  const [preSelectedSlot, setPreSelectedSlot] = useState(null); // slot precompilato da SlotCard
   const [viewVet, setViewVet] = useState(null);
   const [viewPet, setViewPet] = useState(null);
   const [reviewFor, setReviewFor] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // Filtri precompilati dalla Home → tab Prenota
+  const [bookingFilters, setBookingFilters] = useState(null);
 
   const tabs = [
-    ["home", "🏠", "Home"], ["search", "🔍", "Cerca"], ["pets", "🐾", "Animali"],
-    ["appts", "📅", "Visite"], ["docs", "📄", "Referti"],
+    ["home",    "🏠", "Home"],
+    ["booking", "🗓️", "Prenota"],
+    ["vets",    "👩‍⚕️", "Veterinari"],
+    ["appts",   "📅", "Visite"],
+    ["pets",    "🐾", "Animali"],
   ];
 
-  const resetOverlays = () => { setViewVet(null); setBookingVet(null); setViewPet(null); setReviewFor(null); setShowProfile(false); };
+  const resetOverlays = () => {
+    setViewVet(null);
+    setBookingVet(null);
+    setPreSelectedServiceId(null);
+    setPreSelectedSlot(null);
+    setViewPet(null);
+    setReviewFor(null);
+    setShowProfile(false);
+    setShowNotifications(false);
+  };
+
+  // Home → "Mostra slot disponibili" con filtri precompilati
+  const handleBookingSearch = (filters) => {
+    setBookingFilters(filters);
+    resetOverlays();
+    setTab("booking");
+  };
+
+  // Booking da SlotCard o VetsDirectory → apre BookingFlow con slot precompilato
+  const handleBookSlot = (slot) => {
+    setPreSelectedSlot(slot);
+    setBookingVet(slot.vet);
+    setPreSelectedServiceId(null);
+  };
+
+  // Booking da VetPublicProfile (pulsante generico "Prenota")
+  const handleBookVet = (vet) => {
+    setBookingVet(vet);
+    setPreSelectedSlot(null);
+    setPreSelectedServiceId(null);
+  };
+
+  // VetPublicProfile con slot precompilato (clic su chip slot)
+  const handleBookVetSlot = (slot) => {
+    setPreSelectedSlot(slot);
+    setBookingVet(slot.vet);
+    setViewVet(null);
+  };
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 86 }}>
-      <Header title="MioVeterinario" subtitle={`Area Proprietario · ${ownerProfile.name}`} onLogout={onLogout} onProfile={() => { resetOverlays(); setShowProfile(true); }} />
+      <Header
+        title="MioVeterinario"
+        subtitle={`Area Proprietario · ${ownerProfile.name}`}
+        onLogout={onLogout}
+        onProfile={() => { resetOverlays(); setShowProfile(true); }}
+        unreadCount={unreadCount}
+        onNotifications={() => { resetOverlays(); setShowNotifications(true); }}
+      />
       <div style={{ padding: space["3xl"] }}>
-        {showProfile ? (
+        {showNotifications ? (
+          <NotificationPanel notifications={notifications} onMarkRead={markRead} onMarkAllRead={markAllRead} onClose={() => setShowNotifications(false)} />
+        ) : showProfile ? (
           <OwnerProfile onBack={() => setShowProfile(false)} />
         ) : viewVet ? (
-          <VetPublicProfile vet={viewVet} onBack={() => setViewVet(null)} onBook={() => { setBookingVet(viewVet); setViewVet(null); }} />
+          <VetPublicProfile
+            vet={viewVet}
+            onBack={() => setViewVet(null)}
+            onBook={() => { handleBookVet(viewVet); setViewVet(null); }}
+            onBookSlot={(slot) => { handleBookVetSlot(slot); }}
+          />
         ) : bookingVet ? (
-          <BookingFlow vet={bookingVet} onDone={() => { setBookingVet(null); setTab("appts"); }} onCancel={() => setBookingVet(null)} />
+          <BookingFlow
+            vet={bookingVet}
+            preSelectedServiceId={preSelectedServiceId}
+            initialPetId={preSelectedSlot?.initialPetId}
+            initialServiceId={preSelectedSlot?.serviceId}
+            initialDate={preSelectedSlot?.date}
+            initialTime={preSelectedSlot?.time}
+            initialType={preSelectedSlot?.type}
+            onDone={() => { setBookingVet(null); setPreSelectedServiceId(null); setPreSelectedSlot(null); setTab("appts"); }}
+            onCancel={() => { setBookingVet(null); setPreSelectedServiceId(null); setPreSelectedSlot(null); }}
+          />
         ) : viewPet ? (
           <PetDetail pet={viewPet} onBack={() => setViewPet(null)} />
         ) : reviewFor ? (
           <ReviewForm appt={reviewFor} onDone={() => setReviewFor(null)} />
         ) : (
           <>
-            {tab === "home" && <OwnerHome goSearch={() => setTab("search")} goPets={() => setTab("pets")} />}
-            {tab === "search" && <SearchVets onView={setViewVet} />}
+            {tab === "home" && (
+              <OwnerHome
+                goSearch={() => { resetOverlays(); setTab("vets"); }}
+                goPets={() => { resetOverlays(); setTab("pets"); }}
+                goServiceSearch={() => { resetOverlays(); setTab("booking"); }}
+                onBookingSearch={handleBookingSearch}
+              />
+            )}
+            {tab === "booking" && (
+              <BookingSearch
+                initialFilters={bookingFilters}
+                onBook={handleBookSlot}
+                onViewVet={(vet) => setViewVet(vet)}
+              />
+            )}
+            {tab === "vets" && (
+              <VetsDirectory
+                onView={(vet) => setViewVet(vet)}
+                onBookSlot={handleBookSlot}
+              />
+            )}
+            {tab === "appts" && (
+              <OwnerAppts
+                onReview={setReviewFor}
+                onGoSearch={() => { resetOverlays(); setTab("booking"); }}
+              />
+            )}
             {tab === "pets" && <MyPets onView={setViewPet} />}
-            {tab === "appts" && <OwnerAppts onReview={setReviewFor} />}
-            {tab === "docs" && <OwnerDocs />}
           </>
         )}
       </div>
       <LegalFooter onNav={onNav} />
-      <BottomNav tabs={tabs} active={tab} onChange={(t) => { setTab(t); resetOverlays(); }} />
+      <BottomNav
+        tabs={tabs}
+        active={tab}
+        onChange={(t) => { setTab(t); resetOverlays(); if (t !== "booking") setBookingFilters(null); }}
+        badges={proposalCount > 0 ? { appts: proposalCount } : {}}
+      />
     </div>
   );
 }

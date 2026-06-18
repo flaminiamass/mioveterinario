@@ -5,6 +5,7 @@ import useIsMobile from "../../hooks/useIsMobile.js";
 import { markInvoicePaid, isSupabaseConfigured } from "../../lib/db.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
+import Empty from "../ui/Empty.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
 
 export default function VetBilling({ vetId }) {
@@ -38,6 +39,7 @@ export default function VetBilling({ vetId }) {
         ))}
       </div>
       <div style={{ display: "grid", gap: 10 }}>
+        {mine.length === 0 && <Card><Empty icon="🧾" text="Nessuna fattura emessa" sub="Completa una visita e crea la prima fattura" /></Card>}
         {mine.map(f => {
           const t = getTotal(f);
           return (

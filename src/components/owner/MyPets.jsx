@@ -8,6 +8,7 @@ import { mapPet } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
+import Empty from "../ui/Empty.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
 
 /* Emoji disponibili per ogni specie */
@@ -90,6 +91,9 @@ export default function MyPets({ onView }) {
             notify("🐾 Animale aggiunto!");
           }}>Salva</Btn>
         </Card>
+      )}
+      {!adding && pets.length === 0 && (
+        <Card><Empty icon="🐾" text="Aggiungi il tuo primo animale" sub="Registra il tuo compagno per prenotare visite" action={<Btn variant="accent" onClick={() => setAdding(true)}>+ Aggiungi animale</Btn>} /></Card>
       )}
       <div style={{ display: "grid", gap: 12 }}>
         {pets.map(p => (

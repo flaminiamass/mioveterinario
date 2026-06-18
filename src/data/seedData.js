@@ -7,14 +7,17 @@ import { addDays } from "./helpers.js";
 export const seedVets = [
   {
     id: "v1", status: "verified", name: "Dott.ssa Elena Marchetti", clinic: "Clinica Veterinaria Aurelia",
-    city: "Roma", address: "Via Aurelia 240, Roma", spec: ["Medicina generale", "Dermatologia"],
+    city: "Roma", address: "Via Aurelia 240, Roma", zone: "Aurelio",
+    lat: 41.8986, lng: 12.4258, neighborhood: "Aurelio",
+    spec: ["Medicina generale", "Dermatologia"],
     animals: ["Cane", "Gatto"], bio: "15 anni di esperienza in medicina dei piccoli animali. Particolare attenzione alla dermatologia e alle patologie croniche.",
     fees: { clinic: 50, home: 80, video: 35 }, rating: 4.8, reviews: 124, avatar: "👩‍⚕️",
     types: ["clinic", "home", "video"],
     workDays: [1, 2, 3, 4, 5],
-    /* Dati fiscali */
+    languages: ["Italiano", "English"], cancellationHours: 24,
+    autoConfirm: true,
+    verifiedAt: "2024-03-15",
     piva: "12345678901", cf: "MRCLNE80A41H501Z", albo: "RM-1234", regime: "ordinario",
-    /* Listino personalizzato: id dal catalogo + prezzo custom (null = prezzo default) */
     services: [
       { id: "sv1", price: null }, { id: "sv2", price: null }, { id: "sv3", price: 70 },
       { id: "sv6", price: null }, { id: "sv7", price: null }, { id: "sv8", price: null },
@@ -23,17 +26,21 @@ export const seedVets = [
       { id: "sv16", price: null }, { id: "sv18", price: null },
       { id: "sv19", price: null }, { id: "sv20", price: null },
       { id: "sv25", price: null }, { id: "sv26", price: null }, { id: "sv27", price: null },
-      /* Servizio custom */
       { id: "c_v1_1", name: "Pulizia orecchie", price: 25, duration: 20, cat: "Visite", emoji: "👂", desc: "Pulizia auricolare professionale e controllo otoscopico" },
     ],
   },
   {
     id: "v2", status: "verified", name: "Dott. Marco Ferri", clinic: "Ambulatorio Ferri",
-    city: "Roma", address: "Viale Trastevere 101, Roma", spec: ["Ortopedia", "Chirurgia"],
+    city: "Roma", address: "Viale Trastevere 101, Roma", zone: "Trastevere",
+    lat: 41.8876, lng: 12.4697, neighborhood: "Trastevere",
+    spec: ["Ortopedia", "Chirurgia"],
     animals: ["Cane", "Gatto", "Coniglio"], bio: "Specialista in ortopedia e chirurgia dei tessuti molli. Referente per casi complessi.",
     fees: { clinic: 65, home: null, video: 40 }, rating: 4.9, reviews: 89, avatar: "👨‍⚕️",
     types: ["clinic", "video"],
     workDays: [1, 2, 3, 4, 5],
+    languages: ["Italiano"], cancellationHours: 48,
+    autoConfirm: false,
+    verifiedAt: "2024-01-20",
     piva: "98765432101", cf: "FRRMRC75B20H501X", albo: "RM-5678", regime: "forfettario",
     services: [
       { id: "sv1", price: 65 }, { id: "sv5", price: 70 }, { id: "sv7", price: 40 },
@@ -47,11 +54,16 @@ export const seedVets = [
   },
   {
     id: "v3", status: "verified", name: "Dott.ssa Sara Colombo", clinic: "VetCare Balduina",
-    city: "Roma", address: "Piazza Giovenale 8, Roma", spec: ["Animali esotici", "Medicina generale"],
+    city: "Roma", address: "Piazza Giovenale 8, Roma", zone: "Balduina",
+    lat: 41.9230, lng: 12.4310, neighborhood: "Balduina",
+    spec: ["Animali esotici", "Medicina generale"],
     animals: ["Coniglio", "Uccelli", "Rettili", "Cane", "Gatto"], bio: "Esperta in animali esotici e non convenzionali. Approccio gentile e fear-free.",
     fees: { clinic: 55, home: 90, video: 30 }, rating: 4.7, reviews: 56, avatar: "👩‍⚕️",
     types: ["clinic", "home", "video"],
     workDays: [1, 2, 3, 4, 5, 6],
+    languages: ["Italiano", "Español"], cancellationHours: 24,
+    autoConfirm: true,
+    verifiedAt: "2024-05-10",
     piva: "11223344556", cf: "CLMSRA82C55H501Y", albo: "RM-9012", regime: "ordinario",
     services: [
       { id: "sv1", price: 55 }, { id: "sv2", price: 55 }, { id: "sv6", price: 90 },
@@ -61,8 +73,29 @@ export const seedVets = [
       { id: "sv13", price: null }, { id: "sv16", price: null },
       { id: "sv19", price: null },
       { id: "sv25", price: null }, { id: "sv26", price: null }, { id: "sv27", price: null },
-      /* Servizio custom per animali esotici */
       { id: "c_v3_1", name: "Visita animali esotici", price: 70, duration: 45, cat: "Visite", emoji: "🦎", desc: "Consulto specialistico per rettili, uccelli e roditori" },
+    ],
+  },
+  {
+    id: "v4", status: "verified", name: "Dott. Luca Santini", clinic: "Studio Veterinario Prati",
+    city: "Roma", address: "Via Cola di Rienzo 185, Roma", zone: "Prati",
+    lat: 41.9052, lng: 12.4623, neighborhood: "Prati",
+    spec: ["Medicina generale", "Cardiologia", "Urgenze"],
+    animals: ["Cane", "Gatto"], bio: "Medico veterinario con specializzazione in cardiologia felina e canina. Disponibile per urgenze.",
+    fees: { clinic: 60, home: 95, video: 40 }, rating: 4.6, reviews: 41, avatar: "👨‍⚕️",
+    types: ["clinic", "home", "video"],
+    workDays: [1, 2, 3, 4, 5, 6],
+    languages: ["Italiano", "English"], cancellationHours: 24,
+    autoConfirm: true,
+    verifiedAt: "2024-08-01",
+    piva: "22334455667", cf: "SNTLCU85D15H501W", albo: "RM-3456", regime: "ordinario",
+    services: [
+      { id: "sv1", price: 60 }, { id: "sv2", price: 60 }, { id: "sv6", price: 95 },
+      { id: "sv7", price: 40 }, { id: "sv8", price: 95 },
+      { id: "sv9", price: null }, { id: "sv10", price: null }, { id: "sv11", price: null },
+      { id: "sv13", price: null }, { id: "sv18", price: 115 },
+      { id: "sv19", price: null }, { id: "sv20", price: null }, { id: "sv21", price: 130 },
+      { id: "sv25", price: null }, { id: "sv26", price: null },
     ],
   },
 ];
