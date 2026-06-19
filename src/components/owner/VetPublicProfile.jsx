@@ -9,6 +9,9 @@ import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 import Stars from "../ui/Stars.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
+import AvatarImage from "../ui/AvatarImage.jsx";
+import VetMap from "../map/VetMap.jsx";
+import { phoneHref } from "../../utils/phone.js";
 
 const CAT_EMOJI = { Visite: "🩺", Vaccini: "💉", Analisi: "🩸", Diagnostica: "📷", Chirurgia: "🏥", Altro: "📋" };
 
@@ -24,8 +27,8 @@ function slotChipLabel(slot) {
  *   onBook: apre BookingFlow generico (senza slot)
  *   onBookSlot(slot): apre BookingFlow con slot precompilato
  */
-export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot }) {
-  const { reviews, appts, notify } = useApp();
+export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot, onChat }) {
+  const { reviews, appts, isFavoriteVet, toggleFavoriteVet } = useApp();
   const vetReviews = reviews.filter((r) => r.vetId === vet.id);
   const [reviewFilter, setReviewFilter] = useState("all");
   const visibleReviews = reviewFilter === "verified" ? vetReviews.filter((r) => !!r.apptId) : vetReviews;
@@ -39,8 +42,8 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot }) {
   const nextSlots = getNextSlotsForVet({ vet, appts, limit: 5 });
 
   const cancelHours = vet.cancellationHours || 24;
-  const mapQuery = encodeURIComponent(`${vet.address}, ${vet.city}`);
-  const mapUrl = `https://www.openstreetmap.org/search?query=${mapQuery}`;
+  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${vet.lat || ""},${vet.lng || ""} ${vet.address || ""}`)}`;
+  const callHref = phoneHref(vet.phone);
 
   const handleBookSlot = (slot) => {
     if (onBookSlot) onBookSlot(slot);
@@ -55,7 +58,9 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot }) {
 
       {/* Hero card */}
       <Card style={{ marginTop: 12, textAlign: "center" }}>
-        <div style={{ fontSize: 52 }}>{vet.avatar}</div>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <AvatarImage src={vet.avatar} emoji={vet.avatar} name={vet.name} size={72} />
+        </div>
         <h2 style={{ margin: "8px 0 2px" }}>{vet.name}</h2>
         {vet.status === "verified" && (
           <span
@@ -104,11 +109,20 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot }) {
           </div>
         )}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14 }}>
-          <Btn variant="light" onClick={() => notify("♡ Veterinario salvato nei preferiti demo.")}>
-            ♡ Salva veterinario
+          <Btn variant={isFavoriteVet(vet.id) ? undefined : "light"} onClick={() => toggleFavoriteVet(vet.id)}>
+            {isFavoriteVet(vet.id) ? "♥ Salvato" : "♡ Salva"}
           </Btn>
-          <Btn variant="light" onClick={() => notify("Demo: qui apriremo indicazioni e mappa integrata.")}>
-            Apri mappa
+          {callHref ? (
+            <Btn variant="light" onClick={() => (window.location.href = callHref)}>
+              ☎ Chiama ora
+            </Btn>
+          ) : (
+            <Btn variant="light" disabled>
+              Numero non disponibile
+            </Btn>
+          )}
+          <Btn variant="light" onClick={() => onChat?.(vet)}>
+            💬 Chat
           </Btn>
         </div>
       </Card>
@@ -193,22 +207,28 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot }) {
           {vet.city}
           {vet.zone ? ` · ${vet.zone}` : ""}
         </div>
+        <div style={{ marginTop: 10 }}>
+          <VetMap
+            vets={[vet]}
+            slots={nextSlots}
+            center={{ lat: vet.lat || 41.9028, lng: vet.lng || 12.4964 }}
+            onBookSlot={handleBookSlot}
+          />
+        </div>
         <a
-          href={mapUrl}
+          href={directionsUrl}
           target="_blank"
-          rel="noopener noreferrer"
+          rel="noreferrer"
           style={{
             display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
             marginTop: 8,
             fontSize: fontSize.md,
             color: TEAL,
-            fontWeight: 600,
+            fontWeight: 700,
             textDecoration: "none",
           }}
         >
-          🗺️ Apri mappa demo →
+          🧭 Indicazioni
         </a>
       </Card>
 

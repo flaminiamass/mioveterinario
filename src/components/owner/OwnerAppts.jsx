@@ -8,9 +8,11 @@ import { TEAL, ORANGE, colors, fontSize, radius, inputStyle } from "../../styles
 import Badge from "../ui/Badge.jsx";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
+import AvatarImage from "../ui/AvatarImage.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
 import Empty from "../ui/Empty.jsx";
 import FilterPills from "../ui/FilterPills.jsx";
+import { phoneHref } from "../../utils/phone.js";
 
 const FILTER_OPTIONS = [
   { key: "all", label: "Tutte" },
@@ -22,7 +24,7 @@ const FILTER_OPTIONS = [
 
 const CANCEL_REASONS = ["Non posso in quella data", "Ho trovato un altro veterinario", "L'animale sta meglio", "Altro"];
 
-export default function OwnerAppts({ onReview, onGoSearch, onRebook }) {
+export default function OwnerAppts({ onReview, onGoSearch, onRebook, onChatVet }) {
   const { appts, setAppts, pets, vets, reviews, ownerProfile, notify } = useApp();
   const [filter, setFilter] = useState("all");
   const [cancelId, setCancelId] = useState(null);
@@ -118,61 +120,64 @@ export default function OwnerAppts({ onReview, onGoSearch, onRebook }) {
           return (
             <Card key={a.id}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <b>
-                    {pet?.photo} {pet?.name} · {a.date} ore {a.time}
-                  </b>
-                  <div style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 2 }}>
-                    {vet?.name} · {svc ? `${svc.emoji} ${svc.name}` : TYPE_META[a.type]}
-                    {svc && <span style={{ color: ORANGE, fontWeight: 600 }}> · €{svc.price}</span>}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <AvatarImage src={pet?.photo} emoji={pet?.photo} name={pet?.name} size={42} rounded="rounded" />
+                  <div>
+                    <b>
+                      {pet?.name} · {a.date} ore {a.time}
+                    </b>
+                    <div style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 2 }}>
+                      {vet?.name} · {svc ? `${svc.emoji} ${svc.name}` : TYPE_META[a.type]}
+                      {svc && <span style={{ color: ORANGE, fontWeight: 600 }}> · €{svc.price}</span>}
+                    </div>
+                    {a.ownerNotes && (
+                      <div style={{ fontSize: fontSize.md, color: colors.textMedium, marginTop: 4 }}>
+                        📝 {a.ownerNotes}
+                      </div>
+                    )}
+                    {a.vetNotes && (
+                      <div
+                        style={{
+                          fontSize: fontSize.md,
+                          color: TEAL,
+                          marginTop: 4,
+                          background: colors.bgTealSel,
+                          padding: "4px 8px",
+                          borderRadius: radius.sm,
+                        }}
+                      >
+                        👩‍⚕️ Note vet: {a.vetNotes}
+                      </div>
+                    )}
+                    {a.rejectReason && a.status === "cancelled" && (
+                      <div
+                        style={{
+                          fontSize: fontSize.md,
+                          color: colors.dangerFg,
+                          marginTop: 4,
+                          background: colors.dangerBg,
+                          padding: "4px 8px",
+                          borderRadius: radius.sm,
+                        }}
+                      >
+                        ❌ Motivo rifiuto: {a.rejectReason}
+                      </div>
+                    )}
+                    {a.ownerCancelReason && a.status === "cancelled" && (
+                      <div
+                        style={{
+                          fontSize: fontSize.md,
+                          color: colors.textMedium,
+                          marginTop: 4,
+                          background: colors.bgLight,
+                          padding: "4px 8px",
+                          borderRadius: radius.sm,
+                        }}
+                      >
+                        🙍 Motivo cancellazione: {a.ownerCancelReason}
+                      </div>
+                    )}
                   </div>
-                  {a.ownerNotes && (
-                    <div style={{ fontSize: fontSize.md, color: colors.textMedium, marginTop: 4 }}>
-                      📝 {a.ownerNotes}
-                    </div>
-                  )}
-                  {a.vetNotes && (
-                    <div
-                      style={{
-                        fontSize: fontSize.md,
-                        color: TEAL,
-                        marginTop: 4,
-                        background: colors.bgTealSel,
-                        padding: "4px 8px",
-                        borderRadius: radius.sm,
-                      }}
-                    >
-                      👩‍⚕️ Note vet: {a.vetNotes}
-                    </div>
-                  )}
-                  {a.rejectReason && a.status === "cancelled" && (
-                    <div
-                      style={{
-                        fontSize: fontSize.md,
-                        color: colors.dangerFg,
-                        marginTop: 4,
-                        background: colors.dangerBg,
-                        padding: "4px 8px",
-                        borderRadius: radius.sm,
-                      }}
-                    >
-                      ❌ Motivo rifiuto: {a.rejectReason}
-                    </div>
-                  )}
-                  {a.ownerCancelReason && a.status === "cancelled" && (
-                    <div
-                      style={{
-                        fontSize: fontSize.md,
-                        color: colors.textMedium,
-                        marginTop: 4,
-                        background: colors.bgLight,
-                        padding: "4px 8px",
-                        borderRadius: radius.sm,
-                      }}
-                    >
-                      🙍 Motivo cancellazione: {a.ownerCancelReason}
-                    </div>
-                  )}
                 </div>
                 <Badge status={a.status} />
               </div>
@@ -232,6 +237,16 @@ export default function OwnerAppts({ onReview, onGoSearch, onRebook }) {
                     onClick={() => notify("Demo: qui apriremo indicazioni e dettagli clinica.")}
                   >
                     Indicazioni
+                  </Btn>
+                )}
+                {vet && ["pending", "confirmed", "completed"].includes(a.status) && (
+                  <Btn small variant="light" onClick={() => onChatVet?.(vet, a)}>
+                    Chat con veterinario
+                  </Btn>
+                )}
+                {vet && ["pending", "confirmed"].includes(a.status) && phoneHref(vet.phone) && (
+                  <Btn small variant="light" onClick={() => (window.location.href = phoneHref(vet.phone))}>
+                    Chiama ora
                   </Btn>
                 )}
                 {canEdit && !a.proposal && (

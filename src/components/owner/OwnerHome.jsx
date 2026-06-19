@@ -5,6 +5,7 @@ import { getService } from "../../data/services.js";
 import { getAllAvailableSlots } from "../../utils/availability.js";
 import { colors, fontSize, radius, shadow } from "../../styles/tokens.js";
 import Badge from "../ui/Badge.jsx";
+import AvatarImage from "../ui/AvatarImage.jsx";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
@@ -20,7 +21,7 @@ const QUICK_ACTIONS = [
 ];
 
 export default function OwnerHome({ goSearch, goPets, onBookingSearch }) {
-  const { appts, pets, vets, vaccines, ownerProfile } = useApp();
+  const { appts, pets, vets, vaccines, ownerProfile, selectedPetId, setSelectedPetId, favoriteVetIds } = useApp();
 
   const next = appts
     .filter((a) => ["pending", "confirmed"].includes(a.status) && a.date >= fmtDate(today))
@@ -31,7 +32,7 @@ export default function OwnerHome({ goSearch, goPets, onBookingSearch }) {
   const dueVax = vaccines.filter((v) => v.due && new Date(v.due).getTime() < new Date(addDays(45)).getTime());
 
   const firstName = ownerProfile.name.split(" ")[0];
-  const firstPet = pets[0];
+  const firstPet = pets.find((pet) => pet.id === selectedPetId) || pets[0];
   const recommendedSlots = getAllAvailableSlots({
     vets,
     appts,
@@ -40,6 +41,10 @@ export default function OwnerHome({ goSearch, goPets, onBookingSearch }) {
     radiusKm: 10,
     sort: "earliest",
   }).slice(0, 3);
+  const favoriteVets = favoriteVetIds
+    .map((id) => vets.find((vet) => vet.id === id))
+    .filter(Boolean)
+    .slice(0, 3);
 
   const quickSearch = (filters) => {
     onBookingSearch({
@@ -70,6 +75,29 @@ export default function OwnerHome({ goSearch, goPets, onBookingSearch }) {
         <p style={{ margin: "0 0 14px", fontSize: fontSize.base, lineHeight: 1.55, opacity: 0.95 }}>
           Trova subito gli slot liberi per {firstPet?.name || "il tuo animale"}, scegli orario e conferma dall’app.
         </p>
+        {pets.length > 1 && (
+          <select
+            value={firstPet?.id || ""}
+            onChange={(event) => setSelectedPetId(event.target.value)}
+            style={{
+              width: "100%",
+              minHeight: 44,
+              borderRadius: radius.lg,
+              border: "none",
+              padding: "10px 12px",
+              marginBottom: 12,
+              fontWeight: 800,
+              color: colors.textDark,
+              background: colors.white,
+            }}
+          >
+            {pets.map((pet) => (
+              <option key={pet.id} value={pet.id}>
+                {pet.photo} {pet.name}
+              </option>
+            ))}
+          </select>
+        )}
         <Btn variant="accent" onClick={() => quickSearch({})} style={{ width: "100%", minHeight: 50, fontWeight: 900 }}>
           Mostra slot disponibili
         </Btn>
@@ -172,6 +200,41 @@ export default function OwnerHome({ goSearch, goPets, onBookingSearch }) {
           </div>
         </>
       )}
+
+      <SectionTitle>I tuoi veterinari preferiti</SectionTitle>
+      <Card style={{ marginBottom: 18 }}>
+        {favoriteVets.length === 0 ? (
+          <div style={{ color: colors.textMuted, fontSize: fontSize.base }}>
+            Salva i veterinari che usi più spesso per prenotare più velocemente.
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {favoriteVets.map((vet) => {
+              const firstSlot = getAllAvailableSlots({
+                vets: [vet],
+                appts,
+                species: firstPet?.species,
+                zone: "Roma",
+                radiusKm: 10,
+              })[0];
+              return (
+                <div key={vet.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <AvatarImage src={vet.avatar} emoji={vet.avatar} name={vet.name} size={42} />
+                  <div style={{ flex: 1 }}>
+                    <b>{vet.name}</b>
+                    <div style={{ color: colors.textMuted, fontSize: fontSize.sm }}>
+                      ⭐ {vet.rating} · {vet.zone || vet.city} {firstSlot ? `· ${firstSlot.time}` : ""}
+                    </div>
+                  </div>
+                  <Btn small variant="accent" onClick={() => quickSearch({ serviceId: firstSlot?.serviceId })}>
+                    Prenota
+                  </Btn>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       <Card style={{ marginBottom: 18, background: colors.bgOrangeLight, border: `1px solid ${ORANGE}33` }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>

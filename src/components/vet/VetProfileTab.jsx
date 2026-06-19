@@ -3,8 +3,10 @@ import { useApp } from "../../context/AppContext.jsx";
 import { TEAL, ORANGE, colors, fontSize, radius, compactInputStyle, selectStyle } from "../../styles/tokens.js";
 import { VET_SERVICES, SERVICE_CATEGORIES, SERVICE_EMOJIS } from "../../data/services.js";
 import * as db from "../../lib/db.js";
+import AvatarImage from "../ui/AvatarImage.jsx";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
+import PhotoUploader from "../ui/PhotoUploader.jsx";
 import Stars from "../ui/Stars.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
 
@@ -69,6 +71,15 @@ export default function VetProfileTab({ vetId }) {
   const toggleAutoConfirm = () => {
     setVets(vets.map((v) => (v.id === vetId ? { ...v, autoConfirm: !v.autoConfirm } : v)));
     notify(!vet.autoConfirm ? "⚡ Conferma immediata attivata" : "⏳ Conferma manuale attivata");
+  };
+
+  const updateVetAvatar = async (avatar) => {
+    setVets(vets.map((v) => (v.id === vetId ? { ...v, avatar } : v)));
+    notify("📸 Foto profilo aggiornata");
+    if (db.isSupabaseConfigured()) {
+      const { error } = await db.updateVetProfile(vetId, { avatar });
+      if (error) notify("❌ Errore salvataggio foto: " + error.message);
+    }
   };
 
   /* ── Gestione servizi / listino ── */
@@ -201,7 +212,7 @@ export default function VetProfileTab({ vetId }) {
   return (
     <>
       <Card style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 50 }}>{vet.avatar}</div>
+        <AvatarImage src={vet.avatar} emoji={vet.avatar} name={vet.name} size={72} />
         <h3 style={{ margin: "6px 0 2px" }}>{vet.name}</h3>
         <div style={{ color: colors.textSecondary, fontSize: fontSize.base }}>
           {vet.clinic} · {vet.city}
@@ -226,6 +237,17 @@ export default function VetProfileTab({ vetId }) {
             </span>
           ))}
         </div>
+      </Card>
+
+      <Card style={{ marginTop: 10 }}>
+        <div style={{ fontWeight: 800, marginBottom: 10 }}>Foto profilo pubblico</div>
+        <PhotoUploader
+          value={vet.avatar}
+          emoji={vet.avatar}
+          name={vet.name}
+          onChange={updateVetAvatar}
+          onRemove={() => updateVetAvatar("👩‍⚕️")}
+        />
       </Card>
 
       {/* Gestione giorni lavorativi */}

@@ -25,6 +25,10 @@ export function mapVet(row, vetServicesRows = []) {
     clinic: row.clinic || "",
     city: row.city || "",
     address: row.address || "",
+    phone: row.phone || row.clinic_phone || "",
+    lat: row.lat != null ? Number(row.lat) : null,
+    lng: row.lng != null ? Number(row.lng) : null,
+    zone: row.zone || "",
     spec: row.spec || [], // JSONB → array automatico
     animals: row.animals || [],
     bio: row.bio || "",
@@ -42,7 +46,6 @@ export function mapVet(row, vetServicesRows = []) {
     cf: row.cf || "",
     albo: row.albo || "",
     regime: row.regime || "ordinario",
-    zone: row.zone || "",
     languages: row.languages || ["Italiano"],
     cancellationHours: row.cancellation_hours != null ? Number(row.cancellation_hours) : 24,
     services: vetServicesRows.map(mapVetService),

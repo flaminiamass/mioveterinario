@@ -9,6 +9,8 @@ import Btn from "../ui/Btn.jsx";
 import Empty from "../ui/Empty.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
 import SlotCard from "./SlotCard.jsx";
+import VetMap from "../map/VetMap.jsx";
+import useGeolocation from "../../hooks/useGeolocation.js";
 
 const QUICK_SERVICES = [
   { id: "sv1", label: "🩺 Visita" },
@@ -48,14 +50,6 @@ function groupSlotsByDay(slots) {
   return slots.reduce((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
     acc[slot.date].push(slot);
-    return acc;
-  }, {});
-}
-
-function zoneCounts(slots) {
-  return slots.reduce((acc, slot) => {
-    const zone = slot.zone || "Roma";
-    acc[zone] = (acc[zone] || 0) + 1;
     return acc;
   }, {});
 }
@@ -112,54 +106,9 @@ function FilterBlock({ title, children }) {
   );
 }
 
-function DemoMap({ slots }) {
-  const counts = zoneCounts(slots);
-  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  const max = Math.max(...entries.map(([, count]) => count), 1);
-
-  return (
-    <div
-      style={{
-        background: "linear-gradient(135deg, #E0F2F2, #FFF7ED)",
-        border: `1px solid ${colors.borderLight}`,
-        borderRadius: radius.xl,
-        padding: 16,
-        marginTop: 12,
-      }}
-    >
-      <div style={{ fontWeight: 800, fontSize: fontSize.xl, color: colors.textDark }}>🗺️ Mappa demo disponibilità</div>
-      <p style={{ margin: "4px 0 14px", color: colors.textSecondary, fontSize: fontSize.md }}>
-        Distribuzione simulata degli slot per zona. Nessuna mappa reale integrata.
-      </p>
-      <div style={{ display: "grid", gap: 10 }}>
-        {entries.length === 0 && <div style={{ color: colors.textMuted }}>Nessuno slot da mostrare sulla mappa.</div>}
-        {entries.map(([zone, count]) => (
-          <div key={zone}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: fontSize.md, marginBottom: 4 }}>
-              <b>{zone}</b>
-              <span style={{ color: TEAL, fontWeight: 800 }}>{count} slot</span>
-            </div>
-            <div
-              style={{ height: 8, borderRadius: radius.pill, background: "rgba(255,255,255,0.75)", overflow: "hidden" }}
-            >
-              <div
-                style={{
-                  width: `${Math.max(12, (count / max) * 100)}%`,
-                  height: "100%",
-                  background: TEAL,
-                  borderRadius: radius.pill,
-                }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default function BookingSearch({ initialFilters, onBook, onViewVet, onViewAllVets }) {
+export default function BookingSearch({ initialFilters, onBook, onViewVet, onChatVet, onViewAllVets }) {
   const { vets, appts, pets, notify } = useApp();
+  const geo = useGeolocation();
 
   const iF = initialFilters || {};
   const [petId, setPetId] = useState(iF.petId || "");
@@ -179,6 +128,7 @@ export default function BookingSearch({ initialFilters, onBook, onViewVet, onVie
   const fallbackPetId = petId || pets[0]?.id || "";
   const effectiveSpecies = selectedPet?.species || species;
   const effectiveServiceId = serviceId === "c_exotic" ? "c_v3_1" : serviceId;
+  const searchZone = zone === "Vicino a me" ? geo.coords : zone;
   const dateRange = useMemo(() => buildDateRange(quickDate), [quickDate]);
 
   const slots = useMemo(
@@ -190,12 +140,23 @@ export default function BookingSearch({ initialFilters, onBook, onViewVet, onVie
         species: effectiveSpecies || undefined,
         dateRange,
         timeWindow: timeWindow !== "any" ? timeWindow : undefined,
-        zone: zone || undefined,
+        zone: searchZone || undefined,
         radiusKm: Number(radiusKm),
         type: appointmentType !== "any" ? appointmentType : undefined,
         sort,
       }),
-    [vets, appts, effectiveServiceId, effectiveSpecies, dateRange, timeWindow, zone, radiusKm, appointmentType, sort]
+    [
+      vets,
+      appts,
+      effectiveServiceId,
+      effectiveSpecies,
+      dateRange,
+      timeWindow,
+      searchZone,
+      radiusKm,
+      appointmentType,
+      sort,
+    ]
   );
 
   const grouped = useMemo(() => groupSlotsByDay(slots), [slots]);
@@ -296,7 +257,10 @@ export default function BookingSearch({ initialFilters, onBook, onViewVet, onVie
           <div style={{ display: "grid", gridTemplateColumns: "1fr 112px", gap: 10 }}>
             <select
               value={zone}
-              onChange={(event) => setZone(event.target.value)}
+              onChange={(event) => {
+                setZone(event.target.value);
+                if (event.target.value === "Vicino a me") geo.requestLocation();
+              }}
               style={{ ...selectStyle, width: "100%" }}
             >
               {ROME_ZONES.map((romeZone) => (
@@ -430,7 +394,18 @@ export default function BookingSearch({ initialFilters, onBook, onViewVet, onVie
       </div>
 
       {viewMode === "map" ? (
-        <DemoMap slots={slots} />
+        <>
+          {geo.error && (
+            <div style={{ color: colors.warning, fontSize: fontSize.sm, marginBottom: 8 }}>{geo.error}</div>
+          )}
+          <VetMap
+            vets={[...new Map(slots.map((slot) => [slot.vetId, slot.vet])).values()]}
+            slots={slots.map((slot) => ({ ...slot, initialPetId: fallbackPetId }))}
+            userCoords={zone === "Vicino a me" ? geo.coords : null}
+            onBookSlot={(slot) => onBook({ ...slot, initialPetId: fallbackPetId })}
+            onViewVet={onViewVet}
+          />
+        </>
       ) : slots.length === 0 ? (
         <div>
           <Empty icon="🗓️" text="Nessuno slot disponibile con questi filtri" />
@@ -472,6 +447,7 @@ export default function BookingSearch({ initialFilters, onBook, onViewVet, onVie
                     slot={slot}
                     onBook={() => onBook({ ...slot, initialPetId: fallbackPetId })}
                     onViewVet={() => onViewVet(slot.vet)}
+                    onChat={() => onChatVet?.(slot.vet)}
                   />
                 ))}
               </div>

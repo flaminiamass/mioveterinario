@@ -7,8 +7,10 @@ import { createPet, isSupabaseConfigured } from "../../lib/db.js";
 import { mapPet } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
+import AvatarImage from "../ui/AvatarImage.jsx";
 import Card from "../ui/Card.jsx";
 import Empty from "../ui/Empty.jsx";
+import PhotoUploader from "../ui/PhotoUploader.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
 
 /* Emoji disponibili per ogni specie */
@@ -22,7 +24,7 @@ const PHOTO_OPTIONS = {
 };
 
 export default function MyPets({ onView }) {
-  const { pets, setPets, notify } = useApp();
+  const { pets, setPets, notify, setSelectedPetId } = useApp();
   const { user } = useAuthContext();
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({
@@ -92,8 +94,17 @@ export default function MyPets({ onView }) {
           <label
             style={{ fontSize: fontSize.sm, color: colors.textMuted, fontWeight: 600, marginTop: 10, display: "block" }}
           >
-            Icona
+            Foto o icona
           </label>
+          <div style={{ marginTop: 8 }}>
+            <PhotoUploader
+              value={form.photo}
+              emoji={form.photo}
+              name={form.name || "Animale"}
+              rounded="rounded"
+              onChange={(photo) => setForm({ ...form, photo })}
+            />
+          </div>
           <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
             {(PHOTO_OPTIONS[form.species] || PHOTO_OPTIONS.Altro).map((emoji) => (
               <button
@@ -199,9 +210,13 @@ export default function MyPets({ onView }) {
                   notify("❌ Errore: " + error.message);
                   return;
                 }
-                setPets([...pets, mapPet(data)]);
+                const mapped = mapPet(data);
+                setPets([...pets, mapped]);
+                setSelectedPetId(mapped.id);
               } else {
-                setPets([...pets, { id: "p" + Date.now(), ...form, weight: form.weight ? Number(form.weight) : "" }]);
+                const newPet = { id: "p" + Date.now(), ...form, weight: form.weight ? Number(form.weight) : "" };
+                setPets([...pets, newPet]);
+                setSelectedPetId(newPet.id);
               }
               setForm({ name: "", species: "Cane", breed: "", dob: "", weight: "", chip: "", sex: "", photo: "🐶" });
               setAdding(false);
@@ -230,7 +245,7 @@ export default function MyPets({ onView }) {
         {pets.map((p) => (
           <Card key={p.id} onClick={() => onView(p)}>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <div style={{ fontSize: 40 }}>{p.photo}</div>
+              <AvatarImage src={p.photo} emoji={p.photo} name={p.name} size={52} rounded="rounded" />
               <div style={{ flex: 1 }}>
                 <b style={{ fontSize: fontSize.xl }}>{p.name}</b>
                 <div style={{ color: colors.textSecondary, fontSize: fontSize.md }}>

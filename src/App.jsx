@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useApp } from "./context/AppContext.jsx";
 import { useAuthContext } from "./context/AuthContext.jsx";
 import { isSupabaseConfigured } from "./lib/supabaseClient.js";
-import { TEAL, colors, fontSize, radius, shadow } from "./styles/tokens.js";
+import { TEAL, ORANGE, colors, fontSize, radius, shadow } from "./styles/tokens.js";
 import AuthPage from "./components/AuthPage.jsx";
 import Landing from "./components/Landing.jsx";
 import OwnerApp from "./components/owner/OwnerApp.jsx";
@@ -17,7 +17,7 @@ import TermsOfService from "./components/legal/TermsOfService.jsx";
 import CookiePolicy from "./components/legal/CookiePolicy.jsx";
 
 export default function App() {
-  const { role, setRole, toast, dataLoading } = useApp();
+  const { role, setRole, toast, dataLoading, bannerNotif } = useApp();
   const { user, profile, loading: authLoading, signOut } = useAuthContext();
   const [legalPage, setLegalPage] = useState(null);
 
@@ -131,6 +131,79 @@ export default function App() {
           }}
         >
           {toast}
+        </div>
+      )}
+      {bannerNotif && (
+        <div
+          style={{
+            position: "fixed",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "min(92vw, 360px)",
+            background: "rgba(30,30,32,0.92)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            color: colors.white,
+            borderRadius: 18,
+            zIndex: 9999,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.38)",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 16px",
+            animation: "slideDownBanner 0.35s cubic-bezier(.22,1,.36,1)",
+          }}
+        >
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: bannerNotif.type === "message_received" ? TEAL : ORANGE,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 20,
+              flexShrink: 0,
+            }}
+          >
+            {bannerNotif.type === "message_received" ? "💬" : "🔔"}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: fontSize.base,
+                color: colors.white,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {bannerNotif.title}
+            </div>
+            {bannerNotif.message && (
+              <div
+                style={{
+                  fontSize: fontSize.sm,
+                  color: "rgba(255,255,255,0.72)",
+                  marginTop: 1,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {bannerNotif.message}
+              </div>
+            )}
+          </div>
+          <style>{`
+            @keyframes slideDownBanner {
+              from { opacity: 0; transform: translateX(-50%) translateY(-28px); }
+              to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+            }
+          `}</style>
         </div>
       )}
       {renderContent()}

@@ -1,8 +1,19 @@
 import Btn from "../ui/Btn.jsx";
 import logoImg from "../../assets/logo.png";
 import { colors, fontSize, radius } from "../../styles/tokens.js";
+import AvatarImage from "../ui/AvatarImage.jsx";
 
-export default function Header({ title, subtitle, onLogout, onProfile, unreadCount = 0, onNotifications }) {
+export default function Header({
+  title,
+  subtitle,
+  onLogout,
+  onProfile,
+  unreadCount = 0,
+  onNotifications,
+  chatUnreadCount = 0,
+  onChat,
+  avatar,
+}) {
   return (
     <div
       style={{
@@ -67,6 +78,51 @@ export default function Header({ title, subtitle, onLogout, onProfile, unreadCou
             )}
           </button>
         )}
+        {onChat && (
+          <button
+            onClick={onChat}
+            aria-label="Messaggi"
+            style={{
+              background: "rgba(255,255,255,0.18)",
+              border: "none",
+              borderRadius: radius.md,
+              color: colors.white,
+              cursor: "pointer",
+              padding: "6px 10px",
+              minHeight: 36,
+              display: "flex",
+              alignItems: "center",
+              fontSize: fontSize.sm,
+              fontWeight: 600,
+              position: "relative",
+            }}
+          >
+            💬
+            {chatUnreadCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -2,
+                  right: -4,
+                  background: "#EF4444",
+                  color: "#fff",
+                  fontSize: 9,
+                  fontWeight: 800,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "0 3px",
+                  lineHeight: 1,
+                }}
+              >
+                {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+              </span>
+            )}
+          </button>
+        )}
         {onProfile && (
           <button
             onClick={onProfile}
@@ -86,7 +142,7 @@ export default function Header({ title, subtitle, onLogout, onProfile, unreadCou
               fontWeight: 600,
             }}
           >
-            👤 <span>Profilo</span>
+            {avatar ? <AvatarImage src={avatar} emoji={avatar} name="Profilo" size={22} /> : "👤"} <span>Profilo</span>
           </button>
         )}
         <Btn

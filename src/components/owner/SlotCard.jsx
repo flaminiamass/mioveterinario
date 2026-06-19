@@ -4,6 +4,8 @@ import Stars from "../ui/Stars.jsx";
 import Btn from "../ui/Btn.jsx";
 import { fmtDistance } from "../../utils/location.js";
 import { formatRelativeDateLabel } from "../../data/helpers.js";
+import { phoneHref } from "../../utils/phone.js";
+import AvatarImage from "../ui/AvatarImage.jsx";
 
 /**
  * SlotCard — card slot-first per la tab Prenota.
@@ -13,7 +15,7 @@ import { formatRelativeDateLabel } from "../../data/helpers.js";
  *   onBook: () => void
  *   onViewVet: () => void
  */
-export default function SlotCard({ slot, onBook, onViewVet }) {
+export default function SlotCard({ slot, onBook, onViewVet, onChat }) {
   const dayLabel = formatRelativeDateLabel(slot.date);
   const isToday = dayLabel === "Oggi";
   const isTomorrow = dayLabel === "Domani";
@@ -77,8 +79,17 @@ export default function SlotCard({ slot, onBook, onViewVet }) {
         </div>
 
         {/* Veterinario */}
-        <div style={{ fontSize: fontSize.base, fontWeight: 600, color: colors.textDark }}>
-          {slot.vet.avatar} {slot.vet.name}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: fontSize.base,
+            fontWeight: 600,
+            color: colors.textDark,
+          }}
+        >
+          <AvatarImage src={slot.vet.avatar} emoji={slot.vet.avatar} name={slot.vet.name} size={28} /> {slot.vet.name}
         </div>
 
         {/* Clinica + zona + distanza */}
@@ -145,6 +156,20 @@ export default function SlotCard({ slot, onBook, onViewVet }) {
           </Btn>
           <Btn variant="light" onClick={onViewVet} style={{ flex: 1, fontSize: fontSize.md, minHeight: 44 }}>
             Vedi veterinario
+          </Btn>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+          {phoneHref(slot.vet.phone) ? (
+            <Btn small variant="light" onClick={() => (window.location.href = phoneHref(slot.vet.phone))}>
+              ☎ Chiama
+            </Btn>
+          ) : (
+            <Btn small variant="light" disabled>
+              Numero non disponibile
+            </Btn>
+          )}
+          <Btn small variant="light" onClick={() => onChat?.(slot.vet)}>
+            💬 Chat
           </Btn>
         </div>
       </div>

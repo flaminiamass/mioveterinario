@@ -39,7 +39,7 @@ export default function BookingFlow({
   initialTime,
   initialType,
 }) {
-  const { pets, appts, setAppts, notify } = useApp();
+  const { pets, appts, setAppts, notify, createLocalNotification } = useApp();
   const { user } = useAuthContext();
 
   const effectiveServiceId = initialServiceId || preSelectedServiceId || "";
@@ -132,6 +132,12 @@ export default function BookingFlow({
         },
       ]);
     }
+    createLocalNotification({
+      type: isAutoConfirm ? "appt_confirmed" : "appt_created",
+      title: isAutoConfirm ? "Prenotazione confermata" : "Richiesta inviata",
+      message: `${vet.name} · ${date} alle ${time}`,
+      data: { vetId: vet.id, date, time },
+    });
     setStep(5);
   };
 

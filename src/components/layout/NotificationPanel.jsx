@@ -24,7 +24,7 @@ function timeAgo(dateStr) {
   return d.toLocaleDateString("it-IT", { day: "numeric", month: "short" });
 }
 
-export default function NotificationPanel({ notifications, onMarkRead, onMarkAllRead, onClose }) {
+export default function NotificationPanel({ notifications, onMarkRead, onMarkAllRead, onClose, onOpenNotification }) {
   const unread = notifications.filter((n) => !n.read);
 
   return (
@@ -53,6 +53,7 @@ export default function NotificationPanel({ notifications, onMarkRead, onMarkAll
               key={n.id}
               onClick={() => {
                 if (!n.read) onMarkRead(n.id);
+                onOpenNotification?.(n);
               }}
               style={{
                 cursor: !n.read ? "pointer" : "default",

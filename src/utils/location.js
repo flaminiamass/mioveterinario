@@ -23,16 +23,21 @@ export const RADIUS_OPTIONS = [
 /** Posizione "Vicino a me" — demo: Roma Centro. */
 export const DEMO_MY_LOCATION = { lat: 41.8967, lng: 12.4822, label: "Roma Centro (demo)" };
 
+export function distanceBetweenCoords(a, b) {
+  const dLat = (a.lat - b.lat) * 111;
+  const dLng = (a.lng - b.lng) * 111 * Math.cos((b.lat * Math.PI) / 180);
+  return Math.round(Math.sqrt(dLat * dLat + dLng * dLng) * 10) / 10;
+}
+
 /** Distanza approssimativa in km tra un vet e una zona. */
 export function distanceKm(vet, zoneKeyOrLabel) {
+  const vetCoords = { lat: vet.lat || 41.9028, lng: vet.lng || 12.4964 };
+  if (zoneKeyOrLabel && typeof zoneKeyOrLabel === "object" && zoneKeyOrLabel.lat && zoneKeyOrLabel.lng) {
+    return distanceBetweenCoords(vetCoords, zoneKeyOrLabel);
+  }
   const zone = ROME_ZONES.find((z) => z.key === zoneKeyOrLabel || z.label === zoneKeyOrLabel);
   if (!zone) return 5; // fallback
-  const vetLat = vet.lat || 41.9028;
-  const vetLng = vet.lng || 12.4964;
-  // Formula Haversine semplificata (gradi → km, abbastanza precisa a scala locale)
-  const dLat = (vetLat - zone.lat) * 111;
-  const dLng = (vetLng - zone.lng) * 111 * Math.cos((zone.lat * Math.PI) / 180);
-  return Math.round(Math.sqrt(dLat * dLat + dLng * dLng) * 10) / 10;
+  return distanceBetweenCoords(vetCoords, zone);
 }
 
 /** Il vet è entro il raggio dalla zona selezionata? */

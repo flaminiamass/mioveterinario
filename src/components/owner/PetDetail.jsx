@@ -6,12 +6,16 @@ import { getService } from "../../data/services.js";
 import * as db from "../../lib/db.js";
 import { mapVaccine } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
+import AvatarImage from "../ui/AvatarImage.jsx";
 import Badge from "../ui/Badge.jsx";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 import SectionTitle from "../ui/SectionTitle.jsx";
 import Empty from "../ui/Empty.jsx";
 import ConfirmDialog from "../ui/ConfirmDialog.jsx";
+import PhotoUploader from "../ui/PhotoUploader.jsx";
+
+const SPECIES_OPTIONS = ["Cane", "Gatto", "Coniglio", "Uccelli", "Rettili", "Altro"];
 
 export default function PetDetail({ pet, onBack }) {
   const { appts, referti, vets, pets, setPets, vaccines, setVaccines, notify } = useApp();
@@ -22,10 +26,12 @@ export default function PetDetail({ pet, onBack }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: pet.name,
+    species: pet.species,
     breed: pet.breed,
     weight: pet.weight || "",
     chip: pet.chip || "",
     sex: pet.sex || "",
+    photo: pet.photo || "🐾",
   });
   const savedForm = useRef({ ...form });
   const inp = { ...inputStyle, marginTop: 6 };
@@ -76,10 +82,16 @@ export default function PetDetail({ pet, onBack }) {
         ← Indietro
       </Btn>
       <Card style={{ marginTop: 12, textAlign: "center" }}>
-        <div style={{ fontSize: 56 }}>{pet.photo}</div>
+        <AvatarImage
+          src={editing ? form.photo : pet.photo}
+          emoji={editing ? form.photo : pet.photo}
+          name={pet.name}
+          size={82}
+          rounded="rounded"
+        />
         <h2 style={{ margin: "6px 0 2px" }}>{editing ? form.name : pet.name}</h2>
         <div style={{ color: colors.textSecondary, fontSize: fontSize.base }}>
-          {pet.species} · {editing ? form.breed : pet.breed}
+          {editing ? form.species : pet.species} · {editing ? form.breed : pet.breed}
         </div>
 
         {!editing ? (
@@ -111,10 +123,12 @@ export default function PetDetail({ pet, onBack }) {
                 onClick={() => {
                   savedForm.current = {
                     name: pet.name,
+                    species: pet.species,
                     breed: pet.breed,
                     weight: pet.weight || "",
                     chip: pet.chip || "",
                     sex: pet.sex || "",
+                    photo: pet.photo || "🐾",
                   };
                   setForm({ ...savedForm.current });
                   setEditing(true);
@@ -138,6 +152,40 @@ export default function PetDetail({ pet, onBack }) {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
+
+            <label
+              htmlFor="pet-species"
+              style={{
+                fontSize: fontSize.sm,
+                color: colors.textMuted,
+                fontWeight: 600,
+                marginTop: 10,
+                display: "block",
+              }}
+            >
+              Specie
+            </label>
+            <select
+              id="pet-species"
+              style={{ ...inp, background: colors.white }}
+              value={form.species}
+              onChange={(e) => setForm({ ...form, species: e.target.value })}
+            >
+              {SPECIES_OPTIONS.map((species) => (
+                <option key={species}>{species}</option>
+              ))}
+            </select>
+
+            <div style={{ marginTop: 12 }}>
+              <PhotoUploader
+                value={form.photo}
+                emoji={form.photo}
+                name={form.name}
+                rounded="rounded"
+                onChange={(photo) => setForm({ ...form, photo })}
+                onRemove={() => setForm({ ...form, photo: "🐾" })}
+              />
+            </div>
 
             <label
               htmlFor="pet-breed"

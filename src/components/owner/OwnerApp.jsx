@@ -16,13 +16,16 @@ import ReviewForm from "./ReviewForm.jsx";
 import OwnerProfile from "./OwnerProfile.jsx";
 import NotificationPanel from "../layout/NotificationPanel.jsx";
 import LegalFooter from "../legal/LegalFooter.jsx";
+import ChatInbox from "../chat/ChatInbox.jsx";
+import ChatThread from "../chat/ChatThread.jsx";
+import usePersistedState from "../../hooks/usePersistedState.js";
 
 export default function OwnerApp({ onLogout, onNav }) {
-  const { ownerProfile, appts, vets, notifications, unreadCount, markRead, markAllRead } = useApp();
+  const { ownerProfile, appts, vets, notifications, unreadCount, markRead, markAllRead, unreadMessageCount } = useApp();
   const proposalCount = appts.filter((a) => a.proposal && a.proposal.from === "vet").length;
 
   // Tab principali: Home · Prenota · Veterinari · Visite · Animali
-  const [tab, setTab] = useState("home");
+  const [tab, setTab] = usePersistedState("mv.owner.activeTab", "home", window.sessionStorage);
 
   // Overlay/flow state
   const [bookingVet, setBookingVet] = useState(null);
@@ -33,6 +36,8 @@ export default function OwnerApp({ onLogout, onNav }) {
   const [reviewFor, setReviewFor] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showChatInbox, setShowChatInbox] = useState(false);
+  const [chatThread, setChatThread] = useState(null);
 
   // Filtri precompilati dalla Home → tab Prenota
   const [bookingFilters, setBookingFilters] = useState(null);
@@ -54,6 +59,8 @@ export default function OwnerApp({ onLogout, onNav }) {
     setReviewFor(null);
     setShowProfile(false);
     setShowNotifications(false);
+    setShowChatInbox(false);
+    setChatThread(null);
   };
 
   // Home → "Mostra slot disponibili" con filtri precompilati
@@ -104,6 +111,12 @@ export default function OwnerApp({ onLogout, onNav }) {
           setShowProfile(true);
         }}
         unreadCount={unreadCount}
+        chatUnreadCount={unreadMessageCount}
+        avatar={ownerProfile.avatar}
+        onChat={() => {
+          resetOverlays();
+          setShowChatInbox(true);
+        }}
         onNotifications={() => {
           resetOverlays();
           setShowNotifications(true);
@@ -116,9 +129,32 @@ export default function OwnerApp({ onLogout, onNav }) {
             onMarkRead={markRead}
             onMarkAllRead={markAllRead}
             onClose={() => setShowNotifications(false)}
+            onOpenNotification={(notification) => {
+              if (notification.type === "message_received" && notification.data?.threadId) {
+                setShowNotifications(false);
+                setChatThread({
+                  threadId: notification.data.threadId,
+                  vetId: notification.data.vetId,
+                  ownerId: "demo-owner",
+                  apptId: notification.data.apptId,
+                });
+              } else if (notification.type?.startsWith("appt")) {
+                setShowNotifications(false);
+                setTab("appts");
+              }
+            }}
           />
         ) : showProfile ? (
           <OwnerProfile onBack={() => setShowProfile(false)} />
+        ) : chatThread ? (
+          <ChatThread
+            {...chatThread}
+            ownerId={chatThread.ownerId || "demo-owner"}
+            currentRole="owner"
+            onBack={() => setChatThread(null)}
+          />
+        ) : showChatInbox ? (
+          <ChatInbox role="owner" onOpenThread={(thread) => setChatThread(thread)} />
         ) : viewVet ? (
           <VetPublicProfile
             vet={viewVet}
@@ -129,6 +165,10 @@ export default function OwnerApp({ onLogout, onNav }) {
             }}
             onBookSlot={(slot) => {
               handleBookVetSlot(slot);
+            }}
+            onChat={(vet) => {
+              setViewVet(null);
+              setChatThread({ threadId: `demo-owner_${vet.id}`, vetId: vet.id, ownerId: "demo-owner" });
             }}
           />
         ) : bookingVet ? (
@@ -181,17 +221,36 @@ export default function OwnerApp({ onLogout, onNav }) {
                 initialFilters={bookingFilters}
                 onBook={handleBookSlot}
                 onViewVet={(vet) => setViewVet(vet)}
+                onChatVet={(vet) =>
+                  setChatThread({ threadId: `demo-owner_${vet.id}`, vetId: vet.id, ownerId: "demo-owner" })
+                }
                 onViewAllVets={() => {
                   resetOverlays();
                   setTab("vets");
                 }}
               />
             )}
-            {tab === "vets" && <VetsDirectory onView={(vet) => setViewVet(vet)} onBookSlot={handleBookSlot} />}
+            {tab === "vets" && (
+              <VetsDirectory
+                onView={(vet) => setViewVet(vet)}
+                onBookSlot={handleBookSlot}
+                onChatVet={(vet) =>
+                  setChatThread({ threadId: `demo-owner_${vet.id}`, vetId: vet.id, ownerId: "demo-owner" })
+                }
+              />
+            )}
             {tab === "appts" && (
               <OwnerAppts
                 onReview={setReviewFor}
                 onRebook={handleRebook}
+                onChatVet={(vet, appt) =>
+                  setChatThread({
+                    threadId: `demo-owner_${vet.id}`,
+                    vetId: vet.id,
+                    ownerId: "demo-owner",
+                    apptId: appt?.id,
+                  })
+                }
                 onGoSearch={() => {
                   resetOverlays();
                   setTab("booking");

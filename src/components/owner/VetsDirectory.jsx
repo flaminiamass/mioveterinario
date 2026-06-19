@@ -8,6 +8,8 @@ import Card from "../ui/Card.jsx";
 import Stars from "../ui/Stars.jsx";
 import Empty from "../ui/Empty.jsx";
 import Btn from "../ui/Btn.jsx";
+import AvatarImage from "../ui/AvatarImage.jsx";
+import { phoneHref } from "../../utils/phone.js";
 
 function fmtSlot(slot) {
   if (!slot) return null;
@@ -62,8 +64,8 @@ function FilterChip({ label, active, onClick }) {
   );
 }
 
-export default function VetsDirectory({ onView, onBookSlot }) {
-  const { vets, appts, pets, notify } = useApp();
+export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
+  const { vets, appts, pets, notify, isFavoriteVet, toggleFavoriteVet } = useApp();
   const fallbackPetId = pets[0]?.id || "";
 
   const [q, setQ] = useState("");
@@ -72,6 +74,7 @@ export default function VetsDirectory({ onView, onBookSlot }) {
   const [onlyInstant, setOnlyInstant] = useState(false);
   const [availableToday, setAvailableToday] = useState(false);
   const [availableWeekend, setAvailableWeekend] = useState(false);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [sort, setSort] = useState("rating");
 
   const toggleType = (key) => setTypes(types.includes(key) ? types.filter((t) => t !== key) : [...types, key]);
@@ -93,6 +96,7 @@ export default function VetsDirectory({ onView, onBookSlot }) {
       if (animal && !v.animals.includes(animal)) return false;
       if (types.length && !types.some((t) => v.types.includes(t))) return false;
       if (onlyInstant && !v.autoConfirm) return false;
+      if (onlyFavorites && !isFavoriteVet(v.id)) return false;
       return true;
     });
 
@@ -139,7 +143,19 @@ export default function VetsDirectory({ onView, onBookSlot }) {
       });
     }
     return availabilityFiltered;
-  }, [q, animal, types, onlyInstant, availableToday, availableWeekend, sort, vets, appts]);
+  }, [
+    q,
+    animal,
+    types,
+    onlyInstant,
+    onlyFavorites,
+    availableToday,
+    availableWeekend,
+    sort,
+    vets,
+    appts,
+    isFavoriteVet,
+  ]);
 
   return (
     <>
@@ -193,6 +209,11 @@ export default function VetsDirectory({ onView, onBookSlot }) {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <FilterChip label="⚡ Conferma immediata" active={onlyInstant} onClick={() => setOnlyInstant(!onlyInstant)} />
+          <FilterChip
+            label="♥ Solo preferiti"
+            active={onlyFavorites}
+            onClick={() => setOnlyFavorites(!onlyFavorites)}
+          />
           <FilterChip
             label="📅 Disponibile oggi"
             active={availableToday}
@@ -253,21 +274,7 @@ export default function VetsDirectory({ onView, onBookSlot }) {
             {/* Header card: avatar + info principali + prezzo */}
             <div style={{ padding: "16px 16px 12px", display: "flex", gap: 14, alignItems: "flex-start" }}>
               {/* Avatar */}
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: radius.lg,
-                  background: colors.bgTealSel,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 28,
-                  flexShrink: 0,
-                }}
-              >
-                {v.avatar}
-              </div>
+              <AvatarImage src={v.avatar} emoji={v.avatar} name={v.name} size={52} rounded="rounded" />
 
               {/* Testo principale */}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -283,6 +290,19 @@ export default function VetsDirectory({ onView, onBookSlot }) {
                   </div>
                   {/* Prezzo */}
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <button
+                      onClick={() => toggleFavoriteVet(v.id)}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: 22,
+                        color: ORANGE,
+                      }}
+                      aria-label={isFavoriteVet(v.id) ? "Rimuovi dai preferiti" : "Salva nei preferiti"}
+                    >
+                      {isFavoriteVet(v.id) ? "♥" : "♡"}
+                    </button>
                     <div style={{ fontWeight: 800, color: ORANGE, fontSize: 18, lineHeight: 1 }}>€{v.fees.clinic}</div>
                     <div style={{ fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 }}>visita</div>
                   </div>
@@ -417,6 +437,20 @@ export default function VetsDirectory({ onView, onBookSlot }) {
                 style={{ flex: v._firstSlot ? 1 : 2, fontSize: fontSize.md, minHeight: 44 }}
               >
                 Vedi profilo
+              </Btn>
+            </div>
+            <div style={{ padding: "0 16px 14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {phoneHref(v.phone) ? (
+                <Btn small variant="light" onClick={() => (window.location.href = phoneHref(v.phone))}>
+                  ☎ Chiama ora
+                </Btn>
+              ) : (
+                <Btn small variant="light" disabled>
+                  Numero non disponibile
+                </Btn>
+              )}
+              <Btn small variant="light" onClick={() => onChatVet?.(v)}>
+                💬 Chat
               </Btn>
             </div>
           </Card>

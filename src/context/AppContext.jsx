@@ -18,6 +18,7 @@ import {
   seedReviews,
   seedVaccines,
   seedClients,
+  seedMessages,
 } from "../data/seedData.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabaseClient.js";
 import { useAuthContext } from "./AuthContext.jsx";
@@ -33,8 +34,27 @@ import {
   mapNotification,
 } from "../lib/mappers.js";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../lib/db.js";
+import useRealtimeNotifications from "../hooks/useRealtimeNotifications.js";
+import useRealtimeAppSync from "../hooks/useRealtimeAppSync.js";
 
 const AppContext = createContext(null);
+
+function readStored(key, fallback) {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored == null ? fallback : JSON.parse(stored);
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStored(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage can be unavailable; app still works in memory.
+  }
+}
 
 export function AppProvider({ children }) {
   const { user, profile } = useAuthContext();
@@ -51,8 +71,8 @@ export function AppProvider({ children }) {
   const [dataLoading, setDataLoading] = useState(false);
 
   /* ── Dati — partono vuoti in Supabase mode, seed in demo mode ── */
-  const [vets, setVets] = useState(supabaseActive ? [] : seedVets);
-  const [pets, setPets] = useState(supabaseActive ? [] : seedPets);
+  const [vets, setVets] = useState(supabaseActive ? [] : readStored("mv.demo.vets", seedVets));
+  const [pets, setPets] = useState(supabaseActive ? [] : readStored("mv.demo.pets", seedPets));
   const [appts, setAppts] = useState(supabaseActive ? [] : seedAppointments);
   const [referti, setReferti] = useState(supabaseActive ? [] : seedReferti);
   const [invoices, setInvoices] = useState(supabaseActive ? [] : seedInvoices);
@@ -60,7 +80,14 @@ export function AppProvider({ children }) {
   const [vaccines, setVaccines] = useState(supabaseActive ? [] : seedVaccines);
   const [clients, setClients] = useState(supabaseActive ? [] : seedClients);
   const [notifications, setNotifications] = useState([]);
+  const [favoriteVetIds, setFavoriteVetIds] = useState(readStored("mv.favoriteVetIds", []));
+  const [messages, setMessages] = useState(supabaseActive ? [] : readStored("mv.demo.messages", seedMessages));
+  const [selectedPetId, setSelectedPetId] = useState(readStored("mv.selectedPetId", seedPets[0]?.id || ""));
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(
+    readStored("mv.browserNotifications", false)
+  );
   const [toast, setToast] = useState(null);
+  const [bannerNotif, setBannerNotif] = useState(null);
 
   /* Profilo proprietario */
   const [ownerProfile, setOwnerProfile] = useState(
@@ -73,14 +100,166 @@ export function AppProvider({ children }) {
           email: "demo@mioveterinario.it",
           cf: "DMOUTN80A01H501Z",
           address: "Via Esempio 42, 00100 Roma",
-          avatar: "👤",
+          avatar: readStored("mv.demo.ownerProfile", {}).avatar || "👤",
         }
   );
+
+  useEffect(() => {
+    if (!supabaseActive) writeStored("mv.demo.pets", pets);
+  }, [pets, supabaseActive]);
+
+  useEffect(() => {
+    if (!supabaseActive) writeStored("mv.demo.vets", vets);
+  }, [vets, supabaseActive]);
+
+  useEffect(() => writeStored("mv.favoriteVetIds", favoriteVetIds), [favoriteVetIds]);
+  useEffect(() => writeStored("mv.selectedPetId", selectedPetId), [selectedPetId]);
+  useEffect(() => writeStored("mv.browserNotifications", browserNotificationsEnabled), [browserNotificationsEnabled]);
+  useEffect(() => {
+    if (!supabaseActive) writeStored("mv.demo.messages", messages);
+  }, [messages, supabaseActive]);
+  useEffect(() => {
+    if (!supabaseActive) writeStored("mv.demo.ownerProfile", ownerProfile);
+  }, [ownerProfile, supabaseActive]);
+
+  useEffect(() => {
+    if (pets.length === 0) {
+      if (selectedPetId) queueMicrotask(() => setSelectedPetId(""));
+      return;
+    }
+    if (!selectedPetId || !pets.some((pet) => pet.id === selectedPetId)) {
+      queueMicrotask(() => setSelectedPetId(pets[0].id));
+    }
+  }, [pets, selectedPetId]);
 
   const notify = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2600);
   };
+
+  const showBrowserNotification = useCallback(
+    (title, body) => {
+      if (!browserNotificationsEnabled || !("Notification" in window) || Notification.permission !== "granted") return;
+      new Notification(title, { body });
+    },
+    [browserNotificationsEnabled]
+  );
+
+  const createLocalNotification = useCallback(
+    ({ type = "info", title, message = "", data = {} }) => {
+      const notification = {
+        id: `n_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        userId: user?.id || "demo-user",
+        type,
+        title,
+        message,
+        data,
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+      setNotifications((current) => [notification, ...current].slice(0, 50));
+      showBrowserNotification(title, message);
+      setBannerNotif({ type, title, message, data, id: notification.id });
+      setTimeout(() => {
+        setBannerNotif(null);
+        // Segna la notifica come letta quando il banner sparisce
+        setNotifications((current) =>
+          current.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
+        );
+      }, 4000);
+      return notification;
+    },
+    [showBrowserNotification, user?.id]
+  );
+
+  const toggleFavoriteVet = useCallback(
+    (id) => {
+      setFavoriteVetIds((current) => {
+        const next = current.includes(id) ? current.filter((vet) => vet !== id) : [...current, id];
+        createLocalNotification({
+          type: "favorite_vet_available",
+          title: current.includes(id) ? "Veterinario rimosso dai preferiti" : "Veterinario salvato",
+          message: current.includes(id) ? "Non apparirà più tra i preferiti." : "Lo troverai in Home e nel profilo.",
+          data: { vetId: id },
+        });
+        return next;
+      });
+    },
+    [createLocalNotification]
+  );
+
+  const isFavoriteVet = useCallback((id) => favoriteVetIds.includes(id), [favoriteVetIds]);
+
+  const sendMessage = useCallback(
+    (payload) => {
+      const msg = {
+        id: `m_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        createdAt: new Date().toISOString(),
+        readAt: null,
+        ...payload,
+      };
+      setMessages((current) => [...current, msg]);
+      // Notifica solo se il messaggio viene dall'altro (ricezione), non dall'utente corrente
+      if (msg.senderRole !== role) {
+        createLocalNotification({
+          type: "message_received",
+          title: `Nuovo messaggio da ${msg.senderName}`,
+          message: msg.text,
+          data: { threadId: msg.threadId, vetId: msg.vetId, apptId: msg.apptId },
+        });
+      }
+      return msg;
+    },
+    [createLocalNotification, role]
+  );
+
+  const markThreadRead = useCallback((threadId, role) => {
+    setMessages((current) =>
+      current.map((message) =>
+        message.threadId === threadId && message.senderRole !== role && !message.readAt
+          ? { ...message, readAt: new Date().toISOString() }
+          : message
+      )
+    );
+  }, []);
+
+  const buildThreads = useCallback((items, role) => {
+    const grouped = new Map();
+    items.forEach((message) => {
+      const existing = grouped.get(message.threadId) || {
+        threadId: message.threadId,
+        vetId: message.vetId,
+        ownerId: message.ownerId,
+        ownerName: message.senderRole === "owner" ? message.senderName : "Cliente",
+        messages: [],
+      };
+      existing.messages.push(message);
+      if (message.senderRole === "owner") existing.ownerName = message.senderName;
+      grouped.set(message.threadId, existing);
+    });
+    return [...grouped.values()]
+      .map((thread) => {
+        const sorted = thread.messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        return {
+          ...thread,
+          lastMessage: sorted[sorted.length - 1],
+          unread: sorted.filter((message) => message.senderRole !== role && !message.readAt).length,
+        };
+      })
+      .sort((a, b) => b.lastMessage.createdAt.localeCompare(a.lastMessage.createdAt));
+  }, []);
+
+  const getThreadsForOwner = useCallback(() => buildThreads(messages, "owner"), [buildThreads, messages]);
+  const getThreadsForVet = useCallback(
+    (id) =>
+      buildThreads(
+        messages.filter((message) => message.vetId === id),
+        "vet"
+      ),
+    [buildThreads, messages]
+  );
+
+  const unreadMessageCount = messages.filter((message) => message.senderRole !== role && !message.readAt).length;
 
   /* ── Carica dati per il PROPRIETARIO ── */
   async function loadOwnerData() {
@@ -313,14 +492,8 @@ export function AppProvider({ children }) {
     queueMicrotask(() => loadData());
   }, [supabaseActive, user?.id, profile?.role, loadData]);
 
-  /* ── Polling automatico ogni 30 secondi — aggiorna dati e notifiche ── */
-  useEffect(() => {
-    if (!supabaseActive || !user?.id || !profile?.role) return;
-    const interval = setInterval(() => {
-      loadData();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [supabaseActive, user?.id, profile?.role, loadData]);
+  useRealtimeNotifications({ userId: user?.id, setNotifications });
+  useRealtimeAppSync({ user, profile, vetId, setAppts, refreshMessages: () => {} });
 
   /* ── Helper notifiche ── */
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -358,11 +531,28 @@ export function AppProvider({ children }) {
         setClients,
         toast,
         notify,
+        bannerNotif,
         vetId,
         setVetId,
         ownerProfile,
         setOwnerProfile,
         dataLoading,
+        selectedPetId,
+        setSelectedPetId,
+        favoriteVetIds,
+        setFavoriteVetIds,
+        toggleFavoriteVet,
+        isFavoriteVet,
+        messages,
+        setMessages,
+        sendMessage,
+        getThreadsForOwner,
+        getThreadsForVet,
+        markThreadRead,
+        unreadMessageCount,
+        createLocalNotification,
+        browserNotificationsEnabled,
+        setBrowserNotificationsEnabled,
         notifications,
         setNotifications,
         unreadCount,

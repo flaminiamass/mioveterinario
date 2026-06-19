@@ -74,6 +74,10 @@ function slotPrice(vet, service, type) {
 
 function normalizeSlot({ vet, service, date, time, zone, distance }) {
   const type = serviceType(service);
+  const zoneLabel =
+    zone && typeof zone === "object"
+      ? zone.label || "Vicino a te"
+      : vet.zone || vet.city || zone || "Roma";
   return {
     id: `${vet.id}-${service.id}-${date}-${time}`,
     vet,
@@ -86,7 +90,7 @@ function normalizeSlot({ vet, service, date, time, zone, distance }) {
     price: slotPrice(vet, service, type),
     duration: service.duration,
     distanceKm: distance,
-    zone: vet.zone || vet.city || zone || "Roma",
+    zone: zoneLabel,
     address: vet.address,
     rating: vet.rating,
     reviews: vet.reviews,
@@ -255,10 +259,16 @@ export function getAllAvailableSlots({
     if (vet.status !== "verified") continue;
     if (!speciesMatches(vet, species)) continue;
     if (!typeMatches(vet, type)) continue;
-    if (zone && zone !== "any" && zone !== "Vicino a me" && !matchesRadius(vet, zone, radiusKm || 10)) continue;
-    if (zone === "Vicino a me" && !matchesRadius(vet, "Roma Centro", radiusKm || 5)) continue;
+    const zoneIsCoords = zone && typeof zone === "object" && zone.lat != null;
+    if (zoneIsCoords) {
+      if (!matchesRadius(vet, zone, radiusKm || 5)) continue;
+    } else if (zone && zone !== "any" && zone !== "Vicino a me") {
+      if (!matchesRadius(vet, zone, radiusKm || 10)) continue;
+    } else if (zone === "Vicino a me") {
+      if (!matchesRadius(vet, "Roma Centro", radiusKm || 5)) continue;
+    }
 
-    const dist = distanceKm(vet, zone || "Roma Centro");
+    const dist = distanceKm(vet, zoneIsCoords ? zone : zone || "Roma Centro");
     slots.push(
       ...getVetAvailableSlots({
         vet,

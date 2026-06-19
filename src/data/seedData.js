@@ -13,6 +13,7 @@ export const seedVets = [
     city: "Roma",
     address: "Via Aurelia 240, Roma",
     zone: "Aurelio",
+    phone: "+390612345678",
     lat: 41.8986,
     lng: 12.4258,
     neighborhood: "Aurelio",
@@ -72,6 +73,7 @@ export const seedVets = [
     city: "Roma",
     address: "Viale Trastevere 101, Roma",
     zone: "Trastevere",
+    phone: "+390698765432",
     lat: 41.8876,
     lng: 12.4697,
     neighborhood: "Trastevere",
@@ -118,6 +120,7 @@ export const seedVets = [
     city: "Roma",
     address: "Piazza Giovenale 8, Roma",
     zone: "Balduina",
+    phone: "+390655501234",
     lat: 41.923,
     lng: 12.431,
     neighborhood: "Balduina",
@@ -173,6 +176,7 @@ export const seedVets = [
     city: "Roma",
     address: "Via Cola di Rienzo 185, Roma",
     zone: "Prati",
+    phone: "+390655509876",
     lat: 41.9052,
     lng: 12.4623,
     neighborhood: "Prati",
@@ -425,4 +429,19 @@ export const seedVaccines = [
   },
   { petId: "p1", name: "Rabbia", date: addDays(-340), due: addDays(390), vet: "Dott.ssa Marchetti" },
   { petId: "p2", name: "Trivalente felina", date: addDays(-200), due: addDays(165), vet: "Dott.ssa Marchetti" },
+];
+
+export const seedMessages = [
+  {
+    id: "m1",
+    threadId: "demo-owner_v1",
+    ownerId: "demo-owner",
+    vetId: "v1",
+    apptId: "a1",
+    senderRole: "vet",
+    senderName: "Dott.ssa Elena Marchetti",
+    text: "Ciao! Per la visita porta pure il libretto vaccinale se lo hai a portata di mano.",
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    readAt: null,
+  },
 ];
