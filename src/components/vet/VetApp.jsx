@@ -8,6 +8,7 @@ import VetAppts from "./VetAppts.jsx";
 import VetPatients from "./VetPatients.jsx";
 import VetBilling from "./VetBilling.jsx";
 import VetProfileTab from "./VetProfileTab.jsx";
+import VetPlanTab from "./VetPlanTab.jsx";
 import VetPersonalProfile from "./VetPersonalProfile.jsx";
 import NotificationPanel from "../layout/NotificationPanel.jsx";
 import LegalFooter from "../legal/LegalFooter.jsx";
@@ -30,6 +31,7 @@ export default function VetApp({ onLogout, onNav }) {
     ["patients", "🐾", "Pazienti"],
     ["billing", "🧾", "Fatture"],
     ["profile", "⭐", "Servizi"],
+    ["plan", "💎", "Piano"],
   ];
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 86 }}>
@@ -89,11 +91,12 @@ export default function VetApp({ onLogout, onNav }) {
           <ChatInbox role="vet" onOpenThread={(thread) => setChatThread(thread)} />
         ) : (
           <>
-            {tab === "agenda" && <VetAgenda vetId={vetId} />}
+            {tab === "agenda" && <VetAgenda vetId={vetId} onGoToPlan={() => setTab("plan")} />}
             {tab === "appts" && <VetAppts vetId={vetId} />}
             {tab === "patients" && <VetPatients vetId={vetId} />}
             {tab === "billing" && <VetBilling vetId={vetId} />}
             {tab === "profile" && <VetProfileTab vetId={vetId} />}
+            {tab === "plan" && <VetPlanTab vetId={vetId} />}
           </>
         )}
       </div>

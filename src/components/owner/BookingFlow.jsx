@@ -7,6 +7,7 @@ import { getAvailableSlotsForDay, getWorkingDays } from "../../utils/availabilit
 import { createAppointment, isSupabaseConfigured } from "../../lib/db.js";
 import { mapAppointment } from "../../lib/mappers.js";
 import { colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
+import { getCommissionRate } from "../../data/plans.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 
@@ -66,6 +67,7 @@ export default function BookingFlow({
   const [symptoms, setSymptoms] = useState("");
   const [notes, setNotes] = useState("");
   const [openCat, setOpenCat] = useState(null);
+  const [paymentChoice, setPaymentChoice] = useState("clinic");
 
   const vetServices = getVetServices(vet);
   const service = vetServices.find((s) => s.id === serviceId);
@@ -114,6 +116,11 @@ export default function BookingFlow({
       }
       setAppts([...appts, mapAppointment(data)]);
     } else {
+      const paymentStatus =
+        vet.paymentMode === "disabled" || paymentChoice === "clinic"
+          ? "pay_in_clinic"
+          : "online_simulated_pending";
+      const paymentMethod = paymentChoice === "online" ? "online_simulated" : "clinic";
       setAppts([
         ...appts,
         {
@@ -128,6 +135,8 @@ export default function BookingFlow({
           ownerNotes: intake,
           vetNotes: "",
           proposal: null,
+          paymentStatus,
+          paymentMethod,
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -612,6 +621,85 @@ export default function BookingFlow({
             style={{ ...inputStyle, borderRadius: radius.lg, marginTop: 6 }}
             maxLength={1000}
           />
+
+          {/* ── Scelta pagamento simulata (solo se il vet l'ha attivata) ── */}
+          {vet.paymentMode && vet.paymentMode !== "disabled" && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: fontSize.sm, fontWeight: 700, color: colors.textDark, marginBottom: 8 }}>
+                💳 Come vuoi pagare?
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: radius.lg,
+                    border: `1.5px solid ${paymentChoice === "clinic" ? TEAL : colors.borderLight}`,
+                    background: paymentChoice === "clinic" ? colors.bgTealLight : "white",
+                    cursor: vet.paymentMode === "required" ? "default" : "pointer",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="paymentChoice"
+                    value="clinic"
+                    checked={paymentChoice === "clinic"}
+                    disabled={vet.paymentMode === "required"}
+                    onChange={() => setPaymentChoice("clinic")}
+                    style={{ accentColor: TEAL, marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: fontSize.base, color: colors.textDark }}>Pago in studio</div>
+                    <div style={{ fontSize: fontSize.xs, color: colors.textMuted }}>Contanti, carta o POS al momento della visita</div>
+                  </div>
+                </label>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: radius.lg,
+                    border: `1.5px solid ${paymentChoice === "online" ? ORANGE : colors.borderLight}`,
+                    background: paymentChoice === "online" ? colors.bgOrangeLight : "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="paymentChoice"
+                    value="online"
+                    checked={paymentChoice === "online"}
+                    onChange={() => setPaymentChoice("online")}
+                    style={{ accentColor: ORANGE, marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: fontSize.base, color: colors.textDark }}>Pago online (simulato)</div>
+                    <div style={{ fontSize: fontSize.xs, color: colors.textMuted }}>
+                      I pagamenti online saranno attivi in una fase successiva.
+                      {getCommissionRate(vet) && ` Commissione: ${getCommissionRate(vet)}%.`}
+                    </div>
+                  </div>
+                </label>
+              </div>
+              {vet.paymentMode === "required" && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: fontSize.xs,
+                    color: colors.textMuted,
+                    background: colors.bgOrangeLight,
+                    borderRadius: radius.md,
+                    padding: "6px 10px",
+                  }}
+                >
+                  ℹ️ Questo veterinario richiede il pagamento online. Nessun dato reale viene richiesto in questa demo.
+                </div>
+              )}
+            </div>
+          )}
 
           <p style={{ fontSize: fontSize.xs, color: colors.textMuted, marginTop: 8, lineHeight: 1.5 }}>
             Confermando accetti le <b>Condizioni d'uso</b>. I dati saranno condivisi con il veterinario solo per gestire

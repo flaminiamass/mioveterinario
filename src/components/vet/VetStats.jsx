@@ -1,12 +1,16 @@
 import { useApp } from "../../context/AppContext.jsx";
 import { TEAL, ORANGE, colors, fontSize } from "../../styles/tokens.js";
 import { getService } from "../../data/services.js";
+import { canUseAdvancedStats } from "../../data/plans.js";
 import useIsMobile from "../../hooks/useIsMobile.js";
 import Card from "../ui/Card.jsx";
+import UpgradePrompt from "../ui/UpgradePrompt.jsx";
 
-export default function VetStats({ vetId }) {
-  const { appts, invoices } = useApp();
+export default function VetStats({ vetId, onGoToPlan }) {
+  const { appts, invoices, vets } = useApp();
+  const vet = vets.find((v) => v.id === vetId);
   const isMobile = useIsMobile();
+  const advancedStats = canUseAdvancedStats(vet);
 
   /* Mese corrente */
   const now = new Date();
@@ -56,30 +60,40 @@ export default function VetStats({ vetId }) {
         </Card>
       </div>
 
-      {topServices.length > 0 && (
-        <Card style={{ padding: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: fontSize.base, marginBottom: 8 }}>📊 Prestazioni più richieste</div>
-          {topServices.map(({ service, count }, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "6px 0",
-                borderBottom: i < topServices.length - 1 ? `1px solid ${colors.divider}` : "none",
-              }}
-            >
-              <span style={{ fontSize: 20 }}>{service?.emoji || "🩺"}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: fontSize.base }}>{service?.name || "Servizio"}</div>
+      {advancedStats ? (
+        topServices.length > 0 && (
+          <Card style={{ padding: 14 }}>
+            <div style={{ fontWeight: 700, fontSize: fontSize.base, marginBottom: 8 }}>📊 Prestazioni più richieste</div>
+            {topServices.map(({ service, count }, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "6px 0",
+                  borderBottom: i < topServices.length - 1 ? `1px solid ${colors.divider}` : "none",
+                }}
+              >
+                <span style={{ fontSize: 20 }}>{service?.emoji || "🩺"}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: fontSize.base }}>{service?.name || "Servizio"}</div>
+                </div>
+                <div style={{ fontWeight: 700, color: TEAL, fontSize: fontSize.base }}>
+                  {count} {count === 1 ? "visita" : "visite"}
+                </div>
               </div>
-              <div style={{ fontWeight: 700, color: TEAL, fontSize: fontSize.base }}>
-                {count} {count === 1 ? "visita" : "visite"}
-              </div>
-            </div>
-          ))}
-        </Card>
+            ))}
+          </Card>
+        )
+      ) : (
+        <UpgradePrompt
+          feature="Statistiche avanzate"
+          requiredPlan="Pro"
+          description="Con il piano Pro vedi le prestazioni più richieste, l'andamento del fatturato e molto altro."
+          onViewPlans={onGoToPlan}
+          compact
+        />
       )}
     </div>
   );

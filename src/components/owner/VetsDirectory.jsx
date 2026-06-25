@@ -4,6 +4,7 @@ import { TEAL, ORANGE, TYPE_META } from "../../data/constants.js";
 import { fmtDate, formatRelativeDateLabel, today } from "../../data/helpers.js";
 import { getFirstAvailableSlot, getNextSlotsForVet } from "../../utils/availability.js";
 import { colors, fontSize, radius, searchInputStyle, selectStyle } from "../../styles/tokens.js";
+import { isBoosted, canUseOnlineBooking } from "../../data/plans.js";
 import Card from "../ui/Card.jsx";
 import Stars from "../ui/Stars.jsx";
 import Empty from "../ui/Empty.jsx";
@@ -137,8 +138,10 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
     } else {
       const maxR = Math.max(...availabilityFiltered.map((v) => v.reviews || 0), 1);
       availabilityFiltered.sort((a, b) => {
-        const sA = (a.rating / 5) * 0.4 + ((a.reviews || 0) / maxR) * 0.3 + (a._firstSlot ? 0.3 : 0);
-        const sB = (b.rating / 5) * 0.4 + ((b.reviews || 0) / maxR) * 0.3 + (b._firstSlot ? 0.3 : 0);
+        const boostA = isBoosted(a) ? 0.1 : 0;
+        const boostB = isBoosted(b) ? 0.1 : 0;
+        const sA = (a.rating / 5) * 0.4 + ((a.reviews || 0) / maxR) * 0.3 + (a._firstSlot ? 0.3 : 0) + boostA;
+        const sB = (b.rating / 5) * 0.4 + ((b.reviews || 0) / maxR) * 0.3 + (b._firstSlot ? 0.3 : 0) + boostB;
         return sB - sA;
       });
     }
@@ -328,6 +331,34 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
                   >
                     ✓ Verificato
                   </span>
+                  {isBoosted(v) && (
+                    <span
+                      style={{
+                        fontSize: fontSize.xs,
+                        color: "#7C3AED",
+                        fontWeight: 700,
+                        background: "#F3E8FF",
+                        padding: "2px 7px",
+                        borderRadius: radius.md,
+                      }}
+                    >
+                      🏆 Premium
+                    </span>
+                  )}
+                  {canUseOnlineBooking(v) && (
+                    <span
+                      style={{
+                        fontSize: fontSize.xs,
+                        color: colors.success,
+                        fontWeight: 700,
+                        background: "#D1FAE5",
+                        padding: "2px 7px",
+                        borderRadius: radius.md,
+                      }}
+                    >
+                      📅 Online
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

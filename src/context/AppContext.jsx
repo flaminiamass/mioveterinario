@@ -70,7 +70,14 @@ export function AppProvider({ children }) {
   /* ── Flag di caricamento dati ── */
   const [dataLoading, setDataLoading] = useState(false);
 
-  /* ── Dati — partono vuoti in Supabase mode, seed in demo mode ── */
+  /* ── Dati — partono vuoti in Supabase mode, seed in demo mode ──
+     Versione seed: se cambia, invalida il cache locale per ricaricare il seed aggiornato */
+  const SEED_VERSION = "v2-plans";
+  const storedSeedVersion = readStored("mv.seedVersion", null);
+  if (!supabaseActive && storedSeedVersion !== SEED_VERSION) {
+    localStorage.removeItem("mv.demo.vets");
+    writeStored("mv.seedVersion", SEED_VERSION);
+  }
   const [vets, setVets] = useState(supabaseActive ? [] : readStored("mv.demo.vets", seedVets));
   const [pets, setPets] = useState(supabaseActive ? [] : readStored("mv.demo.pets", seedPets));
   const [appts, setAppts] = useState(supabaseActive ? [] : seedAppointments);

@@ -5,6 +5,7 @@ import { SERVICE_CATEGORIES, getVetServices } from "../../data/services.js";
 import { getNextSlotsForVet } from "../../utils/availability.js";
 import { formatRelativeDateLabel } from "../../data/helpers.js";
 import { colors, fontSize, radius } from "../../styles/tokens.js";
+import { canUseOnlineBooking, isBoosted } from "../../data/plans.js";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 import Stars from "../ui/Stars.jsx";
@@ -38,8 +39,12 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot, onCh
   const availableCats = SERVICE_CATEGORIES.filter((c) => vetServices.some((s) => s.cat === c));
   const [openCat, setOpenCat] = useState(null);
 
+  /* Piano e prenotazione */
+  const onlineBookingActive = canUseOnlineBooking(vet);
+  const vetBoosted = isBoosted(vet);
+
   /* Prossimi 5 slot */
-  const nextSlots = getNextSlotsForVet({ vet, appts, limit: 5 });
+  const nextSlots = onlineBookingActive ? getNextSlotsForVet({ vet, appts, limit: 5 }) : [];
 
   const cancelHours = vet.cancellationHours || 24;
   const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${vet.lat || ""},${vet.lng || ""} ${vet.address || ""}`)}`;
@@ -62,20 +67,36 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot, onCh
           <AvatarImage src={vet.avatar} emoji={vet.avatar} name={vet.name} size={72} />
         </div>
         <h2 style={{ margin: "8px 0 2px" }}>{vet.name}</h2>
-        {vet.status === "verified" && (
-          <span
-            style={{
-              fontSize: fontSize.sm,
-              background: colors.bgTealLight,
-              color: TEAL,
-              padding: "3px 10px",
-              borderRadius: radius.pill,
-              fontWeight: 700,
-            }}
-          >
-            ✓ Verificato
-          </span>
-        )}
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginTop: 4 }}>
+          {vet.status === "verified" && (
+            <span
+              style={{
+                fontSize: fontSize.sm,
+                background: colors.bgTealLight,
+                color: TEAL,
+                padding: "3px 10px",
+                borderRadius: radius.pill,
+                fontWeight: 700,
+              }}
+            >
+              ✓ Verificato
+            </span>
+          )}
+          {vetBoosted && (
+            <span
+              style={{
+                fontSize: fontSize.sm,
+                background: "#F3E8FF",
+                color: "#7C3AED",
+                padding: "3px 10px",
+                borderRadius: radius.pill,
+                fontWeight: 700,
+              }}
+            >
+              🏆 Premium
+            </span>
+          )}
+        </div>
         <div style={{ color: colors.textSecondary, marginTop: 6 }}>{vet.clinic}</div>
         <div style={{ color: colors.textMuted, fontSize: fontSize.md }}>
           {vet.zone || vet.city} · {vet.address}
@@ -127,48 +148,72 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot, onCh
         </div>
       </Card>
 
-      {/* ── Primi slot disponibili — priorità visiva ── */}
-      <SectionTitle style={{ marginTop: 20 }}>Primi slot disponibili</SectionTitle>
-      {nextSlots.length > 0 ? (
-        <>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            {nextSlots.map((slot, i) => (
-              <button
-                key={i}
-                onClick={() => handleBookSlot(slot)}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: radius.lg,
-                  border: `2px solid ${TEAL}`,
-                  background: colors.bgTealSel,
-                  color: TEAL,
-                  fontSize: fontSize.base,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  minHeight: 44,
-                }}
-              >
-                {slotChipLabel(slot)} · €{slot.price}
-                <span style={{ display: "block", fontSize: fontSize.xs, color: colors.textMedium, marginTop: 3 }}>
-                  Prenota questo slot
-                </span>
-              </button>
-            ))}
-          </div>
-          <Btn variant="accent" onClick={onBook} style={{ width: "100%", marginBottom: 8 }}>
-            Scegli un altro orario →
-          </Btn>
-        </>
+      {/* ── Prenotazione — dipende dal piano ── */}
+      <SectionTitle style={{ marginTop: 20 }}>Prenota una visita</SectionTitle>
+      {onlineBookingActive ? (
+        nextSlots.length > 0 ? (
+          <>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              {nextSlots.map((slot, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleBookSlot(slot)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: radius.lg,
+                    border: `2px solid ${TEAL}`,
+                    background: colors.bgTealSel,
+                    color: TEAL,
+                    fontSize: fontSize.base,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    minHeight: 44,
+                  }}
+                >
+                  {slotChipLabel(slot)} · €{slot.price}
+                  <span style={{ display: "block", fontSize: fontSize.xs, color: colors.textMedium, marginTop: 3 }}>
+                    Prenota questo slot
+                  </span>
+                </button>
+              ))}
+            </div>
+            <Btn variant="accent" onClick={onBook} style={{ width: "100%", marginBottom: 8 }}>
+              Prenota una visita →
+            </Btn>
+          </>
+        ) : (
+          <>
+            <Card style={{ marginBottom: 12 }}>
+              <span style={{ color: colors.textMuted }}>Nessuno slot disponibile nei prossimi 21 giorni</span>
+            </Card>
+            <Btn variant="accent" onClick={onBook} style={{ width: "100%", marginBottom: 8 }}>
+              Prenota una visita
+            </Btn>
+          </>
+        )
       ) : (
-        <>
-          <Card style={{ marginBottom: 12 }}>
-            <span style={{ color: colors.textMuted }}>Nessuno slot disponibile nei prossimi 21 giorni</span>
-          </Card>
-          <Btn variant="accent" onClick={onBook} style={{ width: "100%", marginBottom: 8 }}>
-            Prenota una visita
-          </Btn>
-        </>
+        <Card
+          style={{
+            marginBottom: 12,
+            background: colors.bgLighter,
+            border: `1px solid ${colors.borderLight}`,
+          }}
+        >
+          <div style={{ fontSize: fontSize.base, color: colors.textMedium, lineHeight: 1.6, marginBottom: 12 }}>
+            📅 Prenotazione online non ancora attiva per questo veterinario.
+          </div>
+          {callHref ? (
+            <Btn onClick={() => (window.location.href = callHref)} style={{ width: "100%", marginBottom: 8 }}>
+              ☎ Chiama ora per prenotare
+            </Btn>
+          ) : (
+            <div style={{ fontSize: fontSize.sm, color: colors.textMuted }}>Numero non disponibile</div>
+          )}
+          <div style={{ fontSize: fontSize.xs, color: colors.textMuted, marginTop: 8, lineHeight: 1.5 }}>
+            Puoi contattare il veterinario direttamente per telefono o tramite chat per richiedere un appuntamento.
+          </div>
+        </Card>
       )}
 
       {/* Bio */}

@@ -14,7 +14,7 @@ import VetStats from "./VetStats.jsx";
 const DAY_FULL = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 const DAY_SHORT = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
 
-export default function VetAgenda({ vetId }) {
+export default function VetAgenda({ vetId, onGoToPlan }) {
   const { appts, pets } = useApp();
   const isMobile = useIsMobile();
   const [weekOffset, setWeekOffset] = useState(0);
@@ -34,7 +34,7 @@ export default function VetAgenda({ vetId }) {
 
   return (
     <>
-      <VetStats vetId={vetId} />
+      <VetStats vetId={vetId} onGoToPlan={onGoToPlan} />
       <SectionTitle
         right={
           <div style={{ display: "flex", gap: 6 }}>
