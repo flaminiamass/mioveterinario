@@ -443,6 +443,41 @@ export async function markAllNotificationsRead(userId) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   VET_DIRECTORY — schede importate (lettura pubblica)
+   Caricate ON-DEMAND per posizione: mai tutte insieme. La RLS
+   consente la sola lettura delle schede pubblicate.
+   ══════════════════════════════════════════════════════════════ */
+
+/**
+ * Schede pubblicate e non rivendicate entro un bounding box geografico.
+ * I limiti null/undefined non vengono applicati (utile per "Ovunque",
+ * dove ci si affida al solo limit).
+ */
+export async function getDirectoryListingsInBounds({ minLat, maxLat, minLng, maxLng, limit = 300 } = {}) {
+  let query = supabase.from("vet_directory").select("*").eq("is_published", true).is("claimed_vet_id", null);
+  if (minLat != null) query = query.gte("lat", minLat);
+  if (maxLat != null) query = query.lte("lat", maxLat);
+  if (minLng != null) query = query.gte("lng", minLng);
+  if (maxLng != null) query = query.lte("lng", maxLng);
+  return query.limit(limit);
+}
+
+/** Ricerca testuale su nome/città/provincia/clinica (schede pubblicate non rivendicate). */
+export async function searchDirectoryListings(text, limit = 100) {
+  // Rimuove i caratteri che romperebbero la sintassi di .or() (virgole/parentesi).
+  const term = (text || "").trim().replace(/[,()]/g, " ").trim();
+  if (!term) return { data: [], error: null };
+  const like = `%${term}%`;
+  return supabase
+    .from("vet_directory")
+    .select("*")
+    .eq("is_published", true)
+    .is("claimed_vet_id", null)
+    .or(`name.ilike.${like},city.ilike.${like},province.ilike.${like},clinic_name.ilike.${like}`)
+    .limit(limit);
+}
+
+/* ══════════════════════════════════════════════════════════════
    ACCOUNT — cancellazione account
    ══════════════════════════════════════════════════════════════ */
 

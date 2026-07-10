@@ -104,7 +104,7 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot, onCh
         <div style={{ margin: "8px 0" }}>
           <Stars n={vet.rating} />
           <span style={{ marginLeft: 4 }}>
-            <b>{vet.rating}</b> · {vet.reviews} recensioni
+            <b>{vet.rating}</b> · {vetReviews.length || vet.reviews || 0} recensioni
           </span>
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 8, flexWrap: "wrap" }}>
@@ -367,7 +367,7 @@ export default function VetPublicProfile({ vet, onBack, onBook, onBookSlot, onCh
         <div style={{ fontSize: 32, fontWeight: 800, color: colors.textDark }}>{vet.rating}</div>
         <Stars n={vet.rating} />
         <div style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 4 }}>
-          {vet.reviews} recensioni · {verifiedCount} verificat{verifiedCount === 1 ? "a" : "e"}
+          {vetReviews.length || vet.reviews || 0} recensioni · {verifiedCount} verificat{verifiedCount === 1 ? "a" : "e"}
         </div>
       </Card>
       <p style={{ fontSize: fontSize.xs, color: colors.textMuted, margin: "0 0 10px", lineHeight: 1.5 }}>

@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import:directory": "node --env-file=.env.local scripts/import-vet-directory.mjs",
+    "sync:directory": "node --env-file=.env.local scripts/sync-enriched-directory.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

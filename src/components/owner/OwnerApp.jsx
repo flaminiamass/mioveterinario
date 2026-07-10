@@ -7,6 +7,7 @@ import OwnerHome from "./OwnerHome.jsx";
 import BookingSearch from "./BookingSearch.jsx";
 import VetsDirectory from "./VetsDirectory.jsx";
 import VetPublicProfile from "./VetPublicProfile.jsx";
+import DirectoryListingProfile from "./DirectoryListingProfile.jsx";
 import BookingFlow from "./BookingFlow.jsx";
 import MyPets from "./MyPets.jsx";
 import PetDetail from "./PetDetail.jsx";
@@ -156,21 +157,25 @@ export default function OwnerApp({ onLogout, onNav }) {
         ) : showChatInbox ? (
           <ChatInbox role="owner" onOpenThread={(thread) => setChatThread(thread)} />
         ) : viewVet ? (
-          <VetPublicProfile
-            vet={viewVet}
-            onBack={() => setViewVet(null)}
-            onBook={() => {
-              handleBookVet(viewVet);
-              setViewVet(null);
-            }}
-            onBookSlot={(slot) => {
-              handleBookVetSlot(slot);
-            }}
-            onChat={(vet) => {
-              setViewVet(null);
-              setChatThread({ threadId: `demo-owner_${vet.id}`, vetId: vet.id, ownerId: "demo-owner" });
-            }}
-          />
+          viewVet.isDirectory ? (
+            <DirectoryListingProfile listing={viewVet} onBack={() => setViewVet(null)} />
+          ) : (
+            <VetPublicProfile
+              vet={viewVet}
+              onBack={() => setViewVet(null)}
+              onBook={() => {
+                handleBookVet(viewVet);
+                setViewVet(null);
+              }}
+              onBookSlot={(slot) => {
+                handleBookVetSlot(slot);
+              }}
+              onChat={(vet) => {
+                setViewVet(null);
+                setChatThread({ threadId: `demo-owner_${vet.id}`, vetId: vet.id, ownerId: "demo-owner" });
+              }}
+            />
+          )
         ) : bookingVet ? (
           <BookingFlow
             vet={bookingVet}

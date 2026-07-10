@@ -20,6 +20,17 @@ export const RADIUS_OPTIONS = [
   { key: 20, label: "20 km" },
 ];
 
+/* Raggi per la ricerca "Vicino a me" su dati nazionali (strutture reali):
+   più ampi di RADIUS_OPTIONS perché le strutture sono più rade delle zone di Roma.
+   key === null → nessun limite ("Ovunque"). */
+export const NEARBY_RADIUS_OPTIONS = [
+  { key: 10, label: "10 km" },
+  { key: 25, label: "25 km" },
+  { key: 50, label: "50 km" },
+  { key: 100, label: "100 km" },
+  { key: null, label: "Ovunque" },
+];
+
 /** Posizione "Vicino a me" — demo: Roma Centro. */
 export const DEMO_MY_LOCATION = { lat: 41.8967, lng: 12.4822, label: "Roma Centro (demo)" };
 
@@ -49,6 +60,55 @@ export function matchesRadius(vet, zoneKey, radiusKm) {
 
 /** Formatta distanza: "2,4 km" oppure "< 1 km". */
 export function fmtDistance(km) {
+  if (km == null) return "";
   if (km < 1) return "< 1 km";
   return `${km.toFixed(1).replace(".", ",")} km`;
+}
+
+/**
+ * Bounding box (min/max lat/lng) attorno a un centro entro radiusKm.
+ * Usato per interrogare il DB senza scaricare tutte le schede nazionali.
+ * Ritorna null se mancano centro o raggio (chi chiama interpreta come "nessun vincolo").
+ */
+export function bboxFromCenter(center, radiusKm) {
+  if (!center || center.lat == null || center.lng == null || radiusKm == null) return null;
+  const dLat = radiusKm / 111;
+  const cosLat = Math.cos((center.lat * Math.PI) / 180) || 1;
+  const dLng = radiusKm / (111 * cosLat);
+  return {
+    minLat: center.lat - dLat,
+    maxLat: center.lat + dLat,
+    minLng: center.lng - dLng,
+    maxLng: center.lng + dLng,
+  };
+}
+
+/** Distanza in km tra un elemento con lat/lng e un centro { lat, lng }.
+    Ritorna null se mancano le coordinate (elemento o centro). */
+export function distanceToCenter(item, center) {
+  if (!center || center.lat == null || center.lng == null) return null;
+  if (!item || item.lat == null || item.lng == null) return null;
+  return distanceBetweenCoords({ lat: item.lat, lng: item.lng }, center);
+}
+
+/**
+ * Filtra elementi entro un raggio da un centro e li ordina per distanza crescente.
+ * - radiusKm null/undefined → nessun limite di distanza (ma ordina comunque).
+ * - keepMissingCoords: se true, mantiene gli elementi senza coordinate (in coda);
+ *   se false, li esclude quando è attivo un raggio.
+ * Ogni elemento risultante riceve la proprietà `_distance` (km o null).
+ */
+export function filterByRadius(items, center, radiusKm, { keepMissingCoords = false } = {}) {
+  const withDistance = (items || []).map((item) => ({ ...item, _distance: distanceToCenter(item, center) }));
+  const filtered = withDistance.filter((item) => {
+    if (item._distance == null) return keepMissingCoords || radiusKm == null;
+    if (radiusKm == null) return true;
+    return item._distance <= radiusKm;
+  });
+  return filtered.sort((a, b) => {
+    if (a._distance == null && b._distance == null) return 0;
+    if (a._distance == null) return 1;
+    if (b._distance == null) return -1;
+    return a._distance - b._distance;
+  });
 }

@@ -9,7 +9,7 @@ import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
 
 export default function ReviewForm({ appt, onDone }) {
-  const { vets, reviews, setReviews, notify, ownerProfile } = useApp();
+  const { vets, reviews, setReviews, notify, ownerProfile, createLocalNotification } = useApp();
   const { user } = useAuthContext();
   const vet = vets.find((v) => v.id === appt.vetId);
   const [rating, setRating] = useState(5);
@@ -119,6 +119,12 @@ export default function ReviewForm({ appt, onDone }) {
               ]);
             }
             notify("⭐ Grazie per la recensione!");
+            createLocalNotification({
+              type: "review_submitted",
+              title: "Recensione inviata",
+              message: `La tua recensione per ${vet?.name} è stata pubblicata.`,
+              data: { vetId: appt.vetId },
+            });
             onDone();
           }}
         >

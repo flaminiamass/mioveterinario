@@ -20,10 +20,12 @@ import {
   seedClients,
   seedMessages,
 } from "../data/seedData.js";
+import { seedDirectoryListings } from "../data/seedDirectoryListings.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabaseClient.js";
 import { useAuthContext } from "./AuthContext.jsx";
 import {
   mapVet,
+  mapDirectoryListing,
   mapPet,
   mapAppointment,
   mapReferto,
@@ -33,7 +35,15 @@ import {
   mapClient,
   mapNotification,
 } from "../lib/mappers.js";
-import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../lib/db.js";
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getDirectoryListingsInBounds,
+  searchDirectoryListings,
+} from "../lib/db.js";
+import { publicDirectoryListings } from "../utils/directory.js";
+import { bboxFromCenter } from "../utils/location.js";
 import useRealtimeNotifications from "../hooks/useRealtimeNotifications.js";
 import useRealtimeAppSync from "../hooks/useRealtimeAppSync.js";
 
@@ -69,16 +79,25 @@ export function AppProvider({ children }) {
 
   /* ── Flag di caricamento dati ── */
   const [dataLoading, setDataLoading] = useState(false);
+  const [directoryLoading, setDirectoryLoading] = useState(false);
 
   /* ── Dati — partono vuoti in Supabase mode, seed in demo mode ──
-     Versione seed: se cambia, invalida il cache locale per ricaricare il seed aggiornato */
-  const SEED_VERSION = "v2-plans";
+     Versione seed: se cambia, invalida il cache locale per ricaricare il seed aggiornato.
+     Incrementa SEED_VERSION ogni volta che seedData.js cambia struttura. */
+  const SEED_VERSION = "v3-planfix";
   const storedSeedVersion = readStored("mv.seedVersion", null);
   if (!supabaseActive && storedSeedVersion !== SEED_VERSION) {
     localStorage.removeItem("mv.demo.vets");
+    localStorage.removeItem("mv.demo.pets");
     writeStored("mv.seedVersion", SEED_VERSION);
   }
   const [vets, setVets] = useState(supabaseActive ? [] : readStored("mv.demo.vets", seedVets));
+  /* Schede directory (strutture importate, non gestite): SEMPRE separate da vets,
+     così prenotazioni/slot/ranking/recensioni non le vedono mai.
+     In demo: seed filtrato (solo pubblicate/non chiuse). In Supabase: caricate da DB. */
+  const [directoryListings, setDirectoryListings] = useState(
+    supabaseActive ? [] : publicDirectoryListings(seedDirectoryListings)
+  );
   const [pets, setPets] = useState(supabaseActive ? [] : readStored("mv.demo.pets", seedPets));
   const [appts, setAppts] = useState(supabaseActive ? [] : seedAppointments);
   const [referti, setReferti] = useState(supabaseActive ? [] : seedReferti);
@@ -170,9 +189,7 @@ export function AppProvider({ children }) {
       setTimeout(() => {
         setBannerNotif(null);
         // Segna la notifica come letta quando il banner sparisce
-        setNotifications((current) =>
-          current.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
-        );
+        setNotifications((current) => current.map((n) => (n.id === notification.id ? { ...n, read: true } : n)));
       }, 4000);
       return notification;
     },
@@ -196,6 +213,43 @@ export function AppProvider({ children }) {
   );
 
   const isFavoriteVet = useCallback((id) => favoriteVetIds.includes(id), [favoriteVetIds]);
+
+  /* ── Directory strutture: caricamento ON-DEMAND ──
+     In demo (senza Supabase) le schede seed sono già nello stato e il filtro
+     avviene lato client, quindi queste funzioni non fanno nulla. */
+  const loadDirectoryNear = useCallback(
+    async (center, radiusKm) => {
+      if (!supabaseActive || !center) return;
+      setDirectoryLoading(true);
+      try {
+        const bounds = bboxFromCenter(center, radiusKm); // null quando radiusKm è null → nessun vincolo, solo limit
+        const { data } = await getDirectoryListingsInBounds({
+          ...(bounds || {}),
+          limit: radiusKm == null ? 500 : 300,
+        });
+        setDirectoryListings(publicDirectoryListings((data || []).map(mapDirectoryListing)));
+      } catch (err) {
+        console.error("Errore caricamento directory:", err);
+      }
+      setDirectoryLoading(false);
+    },
+    [supabaseActive]
+  );
+
+  const searchDirectory = useCallback(
+    async (query) => {
+      if (!supabaseActive || !query || !query.trim()) return;
+      setDirectoryLoading(true);
+      try {
+        const { data } = await searchDirectoryListings(query);
+        setDirectoryListings(publicDirectoryListings((data || []).map(mapDirectoryListing)));
+      } catch (err) {
+        console.error("Errore ricerca directory:", err);
+      }
+      setDirectoryLoading(false);
+    },
+    [supabaseActive]
+  );
 
   const sendMessage = useCallback(
     (payload) => {
@@ -307,6 +361,12 @@ export function AppProvider({ children }) {
     } else {
       setVets([]);
     }
+
+    /* 3b. Le schede directory NON si caricano più tutte qui: sono migliaia e
+       sparse in tutta Italia. Vengono caricate ON-DEMAND per posizione o
+       ricerca testuale (loadDirectoryNear / searchDirectory), quando l'utente
+       apre la ricerca veterinari. Partiamo da lista vuota. */
+    setDirectoryListings([]);
 
     /* 4. Carica i miei appuntamenti */
     const { data: apptsData } = await supabase
@@ -522,6 +582,10 @@ export function AppProvider({ children }) {
         setRole,
         vets,
         setVets,
+        directoryListings,
+        directoryLoading,
+        loadDirectoryNear,
+        searchDirectory,
         pets,
         setPets,
         appts,

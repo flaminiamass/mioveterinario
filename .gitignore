@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Pipeline vet_directory: si committano i CSV, non il binario scaricato
+scripts/vet_directory/out/*.ov2
+__pycache__/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
-import { space } from "../../styles/tokens.js";
+import { space, colors, fontSize } from "../../styles/tokens.js";
+import { canUseChat } from "../../data/plans.js";
 import Header from "../layout/Header.jsx";
 import BottomNav from "../layout/BottomNav.jsx";
 import VetAgenda from "./VetAgenda.jsx";
@@ -14,12 +15,14 @@ import NotificationPanel from "../layout/NotificationPanel.jsx";
 import LegalFooter from "../legal/LegalFooter.jsx";
 import ChatInbox from "../chat/ChatInbox.jsx";
 import ChatThread from "../chat/ChatThread.jsx";
+import UpgradePrompt from "../ui/UpgradePrompt.jsx";
 import usePersistedState from "../../hooks/usePersistedState.js";
 
 export default function VetApp({ onLogout, onNav }) {
   const { vetId, vets, appts, notifications, unreadCount, markRead, markAllRead, unreadMessageCount } = useApp();
   const pendingCount = appts.filter((a) => a.vetId === vetId && a.status === "pending").length;
   const vet = vets.find((v) => v.id === vetId);
+  const chatEnabled = canUseChat(vet);
   const [tab, setTab] = usePersistedState("mv.vet.activeTab", "agenda", window.sessionStorage);
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -86,13 +89,35 @@ export default function VetApp({ onLogout, onNav }) {
         ) : showProfile ? (
           <VetPersonalProfile onBack={() => setShowProfile(false)} />
         ) : chatThread ? (
-          <ChatThread {...chatThread} currentRole="vet" onBack={() => setChatThread(null)} />
+          chatEnabled
+            ? <ChatThread {...chatThread} currentRole="vet" onBack={() => setChatThread(null)} />
+            : <UpgradePrompt
+                feature="Chat con i proprietari"
+                requiredPlan="Pro"
+                description="Con il piano Pro puoi chattare direttamente con i proprietari degli animali."
+                onViewPlans={() => { setChatThread(null); setTab("plan"); }}
+              />
         ) : showChatInbox ? (
-          <ChatInbox role="vet" onOpenThread={(thread) => setChatThread(thread)} />
+          chatEnabled
+            ? <ChatInbox role="vet" onOpenThread={(thread) => setChatThread(thread)} />
+            : <div style={{ padding: "20px 0" }}>
+                <UpgradePrompt
+                  feature="Chat con i proprietari"
+                  requiredPlan="Pro"
+                  description="Con il piano Pro puoi chattare direttamente con i proprietari degli animali."
+                  onViewPlans={() => { setShowChatInbox(false); setTab("plan"); }}
+                />
+                <button
+                  onClick={() => setShowChatInbox(false)}
+                  style={{ marginTop: 12, background: "none", border: "none", color: colors.textMedium, fontSize: fontSize.base, cursor: "pointer" }}
+                >
+                  ← Indietro
+                </button>
+              </div>
         ) : (
           <>
             {tab === "agenda" && <VetAgenda vetId={vetId} onGoToPlan={() => setTab("plan")} />}
-            {tab === "appts" && <VetAppts vetId={vetId} />}
+            {tab === "appts" && <VetAppts vetId={vetId} onGoToPlan={() => setTab("plan")} />}
             {tab === "patients" && <VetPatients vetId={vetId} />}
             {tab === "billing" && <VetBilling vetId={vetId} />}
             {tab === "profile" && <VetProfileTab vetId={vetId} />}

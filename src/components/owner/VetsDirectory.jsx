@@ -1,16 +1,22 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import { TEAL, ORANGE, TYPE_META } from "../../data/constants.js";
 import { fmtDate, formatRelativeDateLabel, today } from "../../data/helpers.js";
 import { getFirstAvailableSlot, getNextSlotsForVet } from "../../utils/availability.js";
 import { colors, fontSize, radius, searchInputStyle, selectStyle } from "../../styles/tokens.js";
 import { isBoosted, canUseOnlineBooking } from "../../data/plans.js";
+import { distanceToCenter, fmtDistance, NEARBY_RADIUS_OPTIONS } from "../../utils/location.js";
+import useGeolocation from "../../hooks/useGeolocation.js";
 import Card from "../ui/Card.jsx";
 import Stars from "../ui/Stars.jsx";
 import Empty from "../ui/Empty.jsx";
 import Btn from "../ui/Btn.jsx";
 import AvatarImage from "../ui/AvatarImage.jsx";
 import { phoneHref } from "../../utils/phone.js";
+
+/* Quante strutture directory mostrare per volta (evita di renderizzare
+   migliaia di schede tutte insieme). */
+const LISTINGS_PAGE = 40;
 
 function fmtSlot(slot) {
   if (!slot) return null;
@@ -66,8 +72,10 @@ function FilterChip({ label, active, onClick }) {
 }
 
 export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
-  const { vets, appts, pets, notify, isFavoriteVet, toggleFavoriteVet } = useApp();
+  const { vets, directoryListings, appts, pets, notify, isFavoriteVet, toggleFavoriteVet, loadDirectoryNear, searchDirectory } =
+    useApp();
   const fallbackPetId = pets[0]?.id || "";
+  const geo = useGeolocation();
 
   const [q, setQ] = useState("");
   const [animal, setAnimal] = useState("");
@@ -77,6 +85,39 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
   const [availableWeekend, setAvailableWeekend] = useState(false);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [sort, setSort] = useState("rating");
+
+  /* Filtro geografico "Vicino a me": attivo di default, chiede la posizione del
+     browser (fallback demo Roma). radiusKm null = "Ovunque". */
+  const [nearMe, setNearMe] = useState(true);
+  const [radiusKm, setRadiusKm] = useState(25);
+  const [listingLimit, setListingLimit] = useState(LISTINGS_PAGE);
+
+  /* Richiede la geolocalizzazione reale una sola volta all'apertura. */
+  const geoRequested = useRef(false);
+  useEffect(() => {
+    if (nearMe && !geoRequested.current) {
+      geoRequested.current = true;
+      geo.requestLocation();
+    }
+  }, [nearMe, geo]);
+
+  const center = geo.coords; // sempre valorizzato (fallback demo Roma)
+  const searchActive = q.trim().length > 0;
+  /* La distanza filtra solo quando NON si sta cercando testo: così una ricerca
+     tipo "Bologna" mostra altre città anche se fuori raggio. */
+  const locationActive = nearMe && !searchActive;
+  const effectiveRadius = locationActive ? radiusKm : null;
+
+  /* Carica le schede directory ON-DEMAND (attivo solo con Supabase; in demo è
+     no-op e si usa il seed già in memoria). Ricerca testuale → query per testo;
+     altrimenti → query per posizione + raggio. */
+  useEffect(() => {
+    if (searchActive) {
+      const t = setTimeout(() => searchDirectory(q), 350);
+      return () => clearTimeout(t);
+    }
+    if (nearMe) loadDirectoryNear(center, radiusKm);
+  }, [searchActive, q, nearMe, radiusKm, center, loadDirectoryNear, searchDirectory]);
 
   const toggleType = (key) => setTypes(types.includes(key) ? types.filter((t) => t !== key) : [...types, key]);
 
@@ -98,11 +139,17 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
       if (types.length && !types.some((t) => v.types.includes(t))) return false;
       if (onlyInstant && !v.autoConfirm) return false;
       if (onlyFavorites && !isFavoriteVet(v.id)) return false;
+      if (locationActive && effectiveRadius != null) {
+        // I vet senza coordinate (gestiti) restano visibili: non li nascondiamo.
+        const d = distanceToCenter(v, center);
+        if (d != null && d > effectiveRadius) return false;
+      }
       return true;
     });
 
     const withSlot = r.map((v) => ({
       ...v,
+      _distance: distanceToCenter(v, center),
       _firstSlot: getFirstAvailableSlot(v, appts, {
         dateRange: availableToday ? [fmtDate(today), fmtDate(today)] : undefined,
       }),
@@ -158,7 +205,72 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
     vets,
     appts,
     isFavoriteVet,
+    locationActive,
+    effectiveRadius,
+    center,
   ]);
+
+  /* Schede directory (strutture non gestite): mostrate DOPO i vet verificati,
+     in ordine alfabetico, fuori dal ranking. I filtri su disponibilità, tipo
+     visita e preferiti non sono applicabili: se attivi, le nascondiamo. */
+  const filteredListings = useMemo(() => {
+    if (onlyInstant || onlyFavorites || availableToday || availableWeekend || types.length) return [];
+    let r = directoryListings;
+    if (q) {
+      const lc = q.toLowerCase();
+      r = r.filter(
+        (l) =>
+          l.name.toLowerCase().includes(lc) ||
+          l.city.toLowerCase().includes(lc) ||
+          l.province.toLowerCase().includes(lc) ||
+          (l.clinic && l.clinic.toLowerCase().includes(lc))
+      );
+    }
+    if (animal) r = r.filter((l) => !l.species.length || l.species.includes(animal));
+
+    // Distanza dalla posizione + filtro raggio (solo quando "Vicino a me" è attivo
+    // e non si sta cercando testo). Le schede senza coordinate restano escluse
+    // da una vista geolocalizzata.
+    const withDistance = r.map((l) => ({ ...l, _distance: distanceToCenter(l, center) }));
+    const scoped =
+      locationActive && effectiveRadius != null
+        ? withDistance.filter((l) => l._distance != null && l._distance <= effectiveRadius)
+        : withDistance;
+
+    // Ordina per distanza quando disponibile (più vicine prima), altrimenti per nome.
+    return [...scoped].sort((a, b) => {
+      if (a._distance != null && b._distance != null && a._distance !== b._distance) {
+        return a._distance - b._distance;
+      }
+      if (a._distance != null && b._distance == null) return -1;
+      if (a._distance == null && b._distance != null) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [
+    directoryListings,
+    q,
+    animal,
+    types,
+    onlyInstant,
+    onlyFavorites,
+    availableToday,
+    availableWeekend,
+    locationActive,
+    effectiveRadius,
+    center,
+  ]);
+
+  // Pagina i risultati directory: mostriamo listingLimit alla volta.
+  const visibleListings = filteredListings.slice(0, listingLimit);
+
+  // Reset della paginazione quando cambiano i filtri principali
+  // (pattern React: aggiustamento di stato durante il render, senza effect).
+  const filterKey = `${q}|${animal}|${nearMe}|${radiusKm}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setListingLimit(LISTINGS_PAGE);
+  }
 
   return (
     <>
@@ -175,6 +287,60 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
         placeholder="🔍  Nome, clinica, zona, specializzazione…"
         style={{ ...searchInputStyle, marginBottom: 14 }}
       />
+
+      {/* Filtro posizione — "Vicino a me" + raggio */}
+      <div style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: fontSize.xs,
+            fontWeight: 700,
+            color: colors.textMuted,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            marginBottom: 6,
+          }}
+        >
+          Dove
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <FilterChip
+            label={geo.loading ? "📍 Localizzo…" : "📍 Vicino a me"}
+            active={nearMe}
+            onClick={() => {
+              const next = !nearMe;
+              setNearMe(next);
+              if (next) geo.requestLocation();
+            }}
+          />
+          <select
+            value={radiusKm == null ? "null" : radiusKm}
+            onChange={(e) => setRadiusKm(e.target.value === "null" ? null : Number(e.target.value))}
+            disabled={!nearMe || searchActive}
+            style={{
+              ...selectStyle,
+              fontSize: fontSize.md,
+              flex: 1,
+              minWidth: 120,
+              opacity: nearMe && !searchActive ? 1 : 0.5,
+            }}
+          >
+            {NEARBY_RADIUS_OPTIONS.map((o) => (
+              <option key={String(o.key)} value={o.key == null ? "null" : o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {searchActive ? (
+          <div style={{ fontSize: fontSize.xs, color: colors.textMuted, marginTop: 6 }}>
+            ℹ️ Ricerca per testo attiva: mostro tutte le città corrispondenti.
+          </div>
+        ) : nearMe ? (
+          <div style={{ fontSize: fontSize.xs, color: geo.error ? colors.warning : colors.textMuted, marginTop: 6 }}>
+            {geo.error ? geo.error : `📍 ${center.label || "La tua posizione"}`}
+          </div>
+        ) : null}
+      </div>
 
       {/* Filtro animale — sezione separata con label */}
       <div style={{ marginBottom: 12 }}>
@@ -265,12 +431,36 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
         </select>
       </div>
       <p style={{ fontSize: fontSize.xs, color: colors.textMuted, margin: "0 0 16px", lineHeight: 1.5 }}>
-        ℹ️ {P2B_TEXT[sort]} Nessun risultato sponsorizzato.
+        ℹ️ {P2B_TEXT[sort]} Nessun risultato sponsorizzato. Le schede non gestite provengono da fonti pubbliche e
+        compaiono in fondo, in ordine alfabetico.
       </p>
 
       {/* Lista veterinari */}
       <div style={{ display: "grid", gap: 16 }}>
-        {filtered.length === 0 && <Empty icon="🔍" text="Nessun veterinario trovato con questi filtri" />}
+        {filtered.length === 0 && filteredListings.length === 0 && (
+          <div>
+            <Empty
+              icon="🔍"
+              text={
+                locationActive
+                  ? "Nessuna struttura nel raggio selezionato"
+                  : "Nessun veterinario trovato con questi filtri"
+              }
+            />
+            {locationActive && (
+              <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
+                {radiusKm != null && radiusKm < 100 && (
+                  <Btn variant="light" onClick={() => setRadiusKm(radiusKm === 25 ? 50 : 100)}>
+                    📍 Allarga il raggio
+                  </Btn>
+                )}
+                <Btn variant="light" onClick={() => setRadiusKm(null)}>
+                  🗺️ Mostra ovunque
+                </Btn>
+              </div>
+            )}
+          </div>
+        )}
 
         {filtered.map((v) => (
           <Card key={v.id} style={{ padding: 0, overflow: "hidden" }}>
@@ -289,6 +479,7 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
                     <div style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 1 }}>{v.clinic}</div>
                     <div style={{ fontSize: fontSize.md, color: colors.textMuted, marginTop: 1 }}>
                       📍 {v.zone || v.city}
+                      {v._distance != null && ` · ${fmtDistance(v._distance)}`}
                     </div>
                   </div>
                   {/* Prezzo */}
@@ -487,6 +678,89 @@ export default function VetsDirectory({ onView, onBookSlot, onChatVet }) {
           </Card>
         ))}
       </div>
+
+      {/* Schede non gestite (directory da fonti pubbliche): niente rating,
+          prezzi, slot o prenotazione — solo nome, posizione e telefono. */}
+      {filteredListings.length > 0 && (
+        <>
+          <div
+            style={{
+              fontSize: fontSize.xs,
+              fontWeight: 700,
+              color: colors.textMuted,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              margin: "20px 0 10px",
+            }}
+          >
+            {locationActive
+              ? `Altre strutture vicino a te (${filteredListings.length})`
+              : `Altre strutture (${filteredListings.length}, schede non gestite)`}
+          </div>
+          <div style={{ display: "grid", gap: 12 }}>
+            {visibleListings.map((l) => (
+              <Card key={l.id} style={{ padding: "14px 16px" }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ fontSize: 28, lineHeight: 1 }}>🏥</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: fontSize.lg, color: colors.textDark, lineHeight: 1.3 }}>
+                      {l.name}
+                    </div>
+                    {l.clinic && l.clinic !== l.name && (
+                      <div style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 1 }}>{l.clinic}</div>
+                    )}
+                    {(l.city || l.province) && (
+                      <div style={{ fontSize: fontSize.md, color: colors.textMuted, marginTop: 1 }}>
+                        📍 {l.city}
+                        {l.province ? ` (${l.province})` : ""}
+                        {l._distance != null && ` · ${fmtDistance(l._distance)}`}
+                      </div>
+                    )}
+                    <span
+                      style={{
+                        display: "inline-block",
+                        fontSize: fontSize.xs,
+                        color: colors.textMuted,
+                        fontWeight: 700,
+                        background: colors.bgBtn,
+                        padding: "2px 7px",
+                        borderRadius: radius.md,
+                        marginTop: 6,
+                      }}
+                    >
+                      Scheda non gestita
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
+                  {phoneHref(l.phone) ? (
+                    <Btn small variant="light" onClick={() => (window.location.href = phoneHref(l.phone))}>
+                      ☎ Chiama ora
+                    </Btn>
+                  ) : (
+                    <Btn small variant="light" disabled>
+                      Numero non disponibile
+                    </Btn>
+                  )}
+                  <Btn small variant="light" onClick={() => onView(l)}>
+                    Vedi scheda
+                  </Btn>
+                </div>
+              </Card>
+            ))}
+          </div>
+          {filteredListings.length > listingLimit && (
+            <Btn
+              variant="light"
+              onClick={() => setListingLimit((n) => n + LISTINGS_PAGE)}
+              style={{ width: "100%", marginTop: 12 }}
+            >
+              Mostra altre {Math.min(LISTINGS_PAGE, filteredListings.length - listingLimit)} strutture →
+            </Btn>
+          )}
+        </>
+      )}
+
       <Btn
         variant="light"
         onClick={() => notify("Demo: grazie, registriamo la segnalazione della clinica.")}

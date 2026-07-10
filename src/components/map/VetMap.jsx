@@ -17,11 +17,26 @@ const userIcon = new L.DivIcon({
   iconAnchor: [11, 11],
 });
 
+const directoryIcon = new L.DivIcon({
+  className: "mv-directory-marker",
+  html: `<div style="width:30px;height:30px;border-radius:50%;background:#64748B;color:white;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,.25);font-size:16px">✚</div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+});
+
 function vetPosition(vet) {
   return [vet.lat || 41.9028, vet.lng || 12.4964];
 }
 
-export default function VetMap({ vets = [], slots = [], userCoords, center, onBookSlot, onViewVet }) {
+export default function VetMap({
+  vets = [],
+  directoryListings = [],
+  slots = [],
+  userCoords,
+  center,
+  onBookSlot,
+  onViewVet,
+}) {
   const mapCenter = center
     ? [center.lat, center.lng]
     : userCoords
@@ -93,6 +108,48 @@ export default function VetMap({ vets = [], slots = [], userCoords, center, onBo
             </Marker>
           );
         })}
+        {/* Schede non gestite: solo quelle con coordinate reali (mai il fallback
+            Roma di vetPosition). Niente slot, rating o Prenota nel popup. */}
+        {directoryListings
+          .filter((l) => l.lat != null && l.lng != null)
+          .map((l) => (
+            <Marker key={l.id} position={[l.lat, l.lng]} icon={directoryIcon}>
+              <Popup>
+                <div style={{ minWidth: 180 }}>
+                  <b>{l.name}</b>
+                  {l.clinic && l.clinic !== l.name && <div>{l.clinic}</div>}
+                  <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700, marginTop: 4 }}>
+                    Scheda non gestita
+                  </div>
+                  <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                    {l.phone ? (
+                      <a href={`tel:${l.phone}`} style={{ color: TEAL, fontWeight: 700 }}>
+                        ☎ Chiama
+                      </a>
+                    ) : (
+                      <span>Numero non disponibile</span>
+                    )}
+                    {onViewVet && (
+                      <button
+                        onClick={() => onViewVet(l)}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: TEAL,
+                          padding: 0,
+                          textAlign: "left",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Vedi scheda
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
       </MapContainer>
     </div>
   );

@@ -5,6 +5,7 @@ import { addDays } from "../../data/helpers.js";
 import { getService } from "../../data/services.js";
 import * as db from "../../lib/db.js";
 import { TEAL, ORANGE, colors, fontSize, radius, inputStyle } from "../../styles/tokens.js";
+import { canUseWaitlist } from "../../data/plans.js";
 import Badge from "../ui/Badge.jsx";
 import Btn from "../ui/Btn.jsx";
 import Card from "../ui/Card.jsx";
@@ -12,6 +13,7 @@ import SectionTitle from "../ui/SectionTitle.jsx";
 import Empty from "../ui/Empty.jsx";
 import FilterPills from "../ui/FilterPills.jsx";
 import RejectDialog from "../ui/RejectDialog.jsx";
+import UpgradePrompt from "../ui/UpgradePrompt.jsx";
 import RefertoForm from "./RefertoForm.jsx";
 import InvoiceForm from "./InvoiceForm.jsx";
 
@@ -22,9 +24,10 @@ const FILTER_OPTIONS = [
   { key: "completed", label: "Completate" },
 ];
 
-export default function VetAppts({ vetId }) {
+export default function VetAppts({ vetId, onGoToPlan }) {
   const { appts, setAppts, pets, vets, referti, invoices, ownerProfile, notify } = useApp();
   const vet = vets.find((v) => v.id === vetId);
+  const waitlistEnabled = canUseWaitlist(vet);
   const [filter, setFilter] = useState("all");
   const [refertoFor, setRefertoFor] = useState(null);
   const [invoiceFor, setInvoiceFor] = useState(null);
@@ -167,6 +170,19 @@ export default function VetAppts({ vetId }) {
                       📝 <i>{a.ownerNotes}</i>
                     </div>
                   )}
+                  {a.paymentStatus && a.paymentStatus !== "not_required" && (() => {
+                    const map = {
+                      pay_in_clinic: { label: "💶 Pagamento in studio", bg: colors.bgLight, color: colors.textMedium },
+                      online_simulated_pending: { label: "💳 Pagamento online (simulato) — in attesa", bg: "#FFF3E8", color: "#D97706" },
+                      online_simulated_paid: { label: "💳 Pagamento online simulato ✓", bg: "#D1FAE5", color: colors.success },
+                    };
+                    const m = map[a.paymentStatus];
+                    return m ? (
+                      <div style={{ fontSize: fontSize.sm, marginTop: 6, background: m.bg, color: m.color, padding: "4px 10px", borderRadius: radius.sm, fontWeight: 600, display: "inline-block" }}>
+                        {m.label}
+                      </div>
+                    ) : null;
+                  })()}
                   {a.vetNotes && (
                     <div
                       style={{
@@ -449,6 +465,18 @@ export default function VetAppts({ vetId }) {
           );
         })}
       </div>
+
+      {!waitlistEnabled && (
+        <div style={{ marginTop: 16 }}>
+          <UpgradePrompt
+            feature="Lista d'attesa automatica"
+            requiredPlan="Pro"
+            description="Con il piano Pro puoi attivare la lista d'attesa: quando un appuntamento viene cancellato, il prossimo cliente in lista viene avvisato automaticamente."
+            onViewPlans={onGoToPlan}
+            compact
+          />
+        </div>
+      )}
 
       <RejectDialog
         open={!!rejectingId}

@@ -53,6 +53,46 @@ export function mapVet(row, vetServicesRows = []) {
 }
 
 /**
+ * Mappa una scheda della directory (tabella "vet_directory") in formato componente.
+ * Sono strutture importate da fonti pubbliche, NON profili attivi:
+ * il flag isDirectory guida i componenti (niente prenotazioni, recensioni, prezzi).
+ */
+export function mapDirectoryListing(row) {
+  return {
+    id: row.id, // "dir_..." — mai in collisione con gli uuid dei vets
+    isDirectory: true,
+    entityType: row.entity_type || "clinic",
+    name: row.name || "",
+    clinic: row.clinic_name || "",
+    vetName: row.vet_name || "",
+    address: row.address || "",
+    city: row.city || "",
+    province: row.province || "",
+    phone: row.phone || "",
+    website: row.website || "",
+    lat: row.lat != null ? Number(row.lat) : null,
+    lng: row.lng != null ? Number(row.lng) : null,
+    species: row.species || [],
+    specialties: row.specialties || [],
+    claimedVetId: row.claimed_vet_id || null,
+    /* ── Campi di arricchimento (CSV enriched). Retrocompatibili: se assenti
+       nel DB restano ai default e i componenti vecchi continuano a funzionare. ── */
+    profileStatus: row.profile_status || "published_unclaimed",
+    verificationStatus: row.verification_status || "not_verified",
+    onlineBookingStatus: row.online_booking_status || "disabled",
+    isPublished: row.is_published !== false,
+    activityStatus: row.activity_status || "uncertain",
+    activityConfidence: row.activity_confidence != null ? Number(row.activity_confidence) : null,
+    officialWebsiteFound: row.official_website_found === true,
+    websiteStatus: row.website_status || "not_checked",
+    externalReputationSignal: row.external_reputation_signal || "not_checked",
+    needsManualReview: row.needs_manual_review === true,
+    recommendedProfileStatus: row.recommended_profile_status || "needs_review",
+    sourceUrls: row.source_urls || [],
+  };
+}
+
+/**
  * Mappa un servizio del vet.
  * Se ha catalog_id → è un servizio dal catalogo (con prezzo personalizzato opzionale).
  * Se catalog_id è null → è un servizio creato dal vet.

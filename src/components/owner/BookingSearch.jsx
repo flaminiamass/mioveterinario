@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import { TEAL } from "../../data/constants.js";
 import { fmtDate, formatRelativeDateLabel, today } from "../../data/helpers.js";
 import { getAllAvailableSlots } from "../../utils/availability.js";
-import { RADIUS_OPTIONS, ROME_ZONES } from "../../utils/location.js";
+import { RADIUS_OPTIONS, ROME_ZONES, filterByRadius } from "../../utils/location.js";
 import { colors, fontSize, radius, selectStyle } from "../../styles/tokens.js";
 import Btn from "../ui/Btn.jsx";
 import Empty from "../ui/Empty.jsx";
@@ -107,7 +107,7 @@ function FilterBlock({ title, children }) {
 }
 
 export default function BookingSearch({ initialFilters, onBook, onViewVet, onChatVet, onViewAllVets }) {
-  const { vets, appts, pets, notify } = useApp();
+  const { vets, directoryListings, appts, pets, notify, loadDirectoryNear } = useApp();
   const geo = useGeolocation();
 
   const iF = initialFilters || {};
@@ -157,6 +157,24 @@ export default function BookingSearch({ initialFilters, onBook, onViewVet, onCha
       appointmentType,
       sort,
     ]
+  );
+
+  /* Punto e raggio di riferimento per le strutture directory. Per "Roma (tutta)"
+     usiamo un raggio ampio. */
+  const dirAnchor = zone === "Vicino a me" ? geo.coords : ROME_ZONES.find((z) => z.key === zone) || ROME_ZONES[0];
+  const dirRadius = zone === "Roma" || zone === "any" ? 25 : Number(radiusKm);
+
+  /* Carica le strutture directory ON-DEMAND quando serve la mappa (solo Supabase;
+     in demo è no-op e si usa il seed). */
+  useEffect(() => {
+    if (viewMode === "map") loadDirectoryNear(dirAnchor, dirRadius);
+  }, [viewMode, dirAnchor, dirRadius, loadDirectoryNear]);
+
+  /* Marker directory sulla mappa: solo le strutture vicine al punto cercato,
+     non tutte quelle nazionali. */
+  const mapDirectoryListings = useMemo(
+    () => filterByRadius(directoryListings, dirAnchor, dirRadius),
+    [directoryListings, dirAnchor, dirRadius]
   );
 
   const grouped = useMemo(() => groupSlotsByDay(slots), [slots]);
@@ -400,6 +418,7 @@ export default function BookingSearch({ initialFilters, onBook, onViewVet, onCha
           )}
           <VetMap
             vets={[...new Map(slots.map((slot) => [slot.vetId, slot.vet])).values()]}
+            directoryListings={mapDirectoryListings}
             slots={slots.map((slot) => ({ ...slot, initialPetId: fallbackPetId }))}
             userCoords={zone === "Vicino a me" ? geo.coords : null}
             onBookSlot={(slot) => onBook({ ...slot, initialPetId: fallbackPetId })}
